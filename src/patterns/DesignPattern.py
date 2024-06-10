@@ -1,4 +1,5 @@
-from review.filters.JavaFilter import JavaFilter
+from src.filters.JavaFilter import JavaFilter
+from src.filters.JavaRelations import JavaRelations
 
 
 def add_node_to_dict(node_dict, key, item):
@@ -176,7 +177,65 @@ pattern_dict = {'template': find_template_pattern,
 
 class DesignPattern:
     def __init__(self, pattern):
+
+        nodes = {'Singleton': {'node': JavaFilter(node_class='class'),
+                               'composers': {'PrivateConstructor': JavaFilter(
+                                   node_class='constructor',
+                                   node_modifiers=[
+                                       'private']),
+                                   'Instance': JavaFilter(
+                                       node_class='field',
+                                       node_modifiers=['private']),
+                                   'GetInstance': JavaFilter(
+                                       node_class='method')}}, }
+
+        relations = [('type', 'Instance', 'Singleton'),
+                     ('return_type', 'GetInstance', 'Singleton')]
+
         if pattern in pattern_dict.keys():
             self.find_pattern = pattern_dict[pattern]
         else:
-            self.find_pattern = None
+            self.nodes = nodes
+            self.relations = relations
+
+            self.find_pattern = self.build_pattern
+
+    def composers_present(self, node, composers):
+        for composer, composer_filter in composers:
+            matching = composer_filter.get_nodes(node)
+            if len(matching) == 0:
+                return {}
+            return {composer: matching}
+
+    def build_pattern(self, project):
+        pattern_instances = []
+
+        for node_id, node_dict in self.nodes.items():
+            node_map = {}
+            for file in project.files:
+                found = node_dict['node'].get_nodes(file.ast)
+                if len(found) > 0:
+                    for node in found:
+                        add_node_to_dict(node_map, node_id, node)
+            if node_id not in node_map:
+                return {}
+
+            if node_dict['composers'] is not None:
+                for found in node_map[node_id]:
+                    matchers = self.composers_present(found, node_dict[
+                        'composers'].items())
+                    if len(matchers) > 0:
+                        pattern_map = {node_id: found}
+                        pattern_map.update(matchers)
+                        pattern_instances.append(pattern_map)
+
+        print('pattern_instances:', pattern_instances)
+
+        # for rel_type, id_from, id_to in self.relations:
+        #     for instance in pattern_instances:
+        #         if not JavaRelations(rel_type).match(instance[id_from],
+        #                                              instance[id_to]):
+        #             # Remove instance
+        #             pass
+
+        return {}

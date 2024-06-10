@@ -1,7 +1,7 @@
 import ast as python_ast
 
-from review.filters.JavaFilter import JavaFilter
-from review.rules.Rule import Rule
+from src.filters.JavaFilter import JavaFilter
+from src.rules.Rule import Rule
 
 
 # Checks that all classes within scope are Encapsulated

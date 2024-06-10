@@ -1,6 +1,6 @@
 import os
 
-from review.project.ReviewFile import ReviewFile
+from src.project.ReviewFile import ReviewFile
 
 
 def get_pattern_instances(a, b):

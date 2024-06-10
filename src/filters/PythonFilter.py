@@ -2,7 +2,7 @@ import ast
 import ast as python_ast
 import re
 
-from review.filters.Filter import Filter
+from src.filters.Filter import Filter
 
 
 class SpecificNodeVisitor(python_ast.NodeVisitor):

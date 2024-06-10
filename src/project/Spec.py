@@ -1,7 +1,7 @@
-from review.filters.JavaFilter import JavaFilter
-from review.patterns.DesignPattern import DesignPattern
-from review.rules.EncapsulationRule import EncapsulationRule
-from review.rules.IdentifierRule import IdentifierRule
+from src.filters.JavaFilter import JavaFilter
+from src.patterns.DesignPattern import DesignPattern
+from src.rules.EncapsulationRule import EncapsulationRule
+from src.rules.IdentifierRule import IdentifierRule
 
 
 def sample_spec():

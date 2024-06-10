@@ -1,10 +1,10 @@
 import unittest
 
-from review.filters.JavaFilter import JavaFilter
-from review.filters.PythonFilter import PythonFilter
-from review.project.ReviewFile import ReviewFile
-from review.rules.EncapsulationRule import EncapsulationRule
-from review.rules.IdentifierRule import IdentifierRule
+from src.filters.JavaFilter import JavaFilter
+from src.filters.PythonFilter import PythonFilter
+from src.project.ReviewFile import ReviewFile
+from src.rules.EncapsulationRule import EncapsulationRule
+from src.rules.IdentifierRule import IdentifierRule
 
 
 class TestRules(unittest.TestCase):

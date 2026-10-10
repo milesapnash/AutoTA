@@ -1,14 +1,16 @@
 import os.path
 
 import javalang.tree as java_ast_tree
-import networkx as nx
-from matplotlib import pyplot as plt
 
 from src.entity_relations.er_classes import *
 from src.entity_relations.utils import add_node_to_dict, find_in_dict
 
 
 def print_graph(entities, relations):
+    # Imported here as plotting is optional and only needed for display
+    import networkx as nx
+    from matplotlib import pyplot as plt
+
     entity_colors = {
         'class': 'skyblue',
         'abstractClass': 'lightgreen',

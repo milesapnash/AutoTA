@@ -7,24 +7,35 @@ from src.project.review_file import ReviewFile
 from src.project.review_project import ReviewProject
 from src.project.spec import Spec
 
-PATTERN_REPOS = os.path.join(os.path.dirname(__file__), 'pattern_repos',
-                             'java')
+PATTERN_REPOS = os.path.join(os.path.dirname(__file__), 'pattern_repos')
 
 
-def detect(repo, pattern):
+def detect(repo, pattern, language='java'):
     """Runs pattern detection on a fixture repo and returns the feedback."""
-    spec = Spec('pattern test', 'java', patterns=[DesignPattern(pattern)])
-    project = ReviewProject(os.path.join(PATTERN_REPOS, repo), spec)
+    spec = Spec('pattern test', language, patterns=[DesignPattern(pattern)])
+    project = ReviewProject(os.path.join(PATTERN_REPOS, language, repo),
+                            spec)
     return '\n'.join(project.feedback)
 
 
-class TestPatternsFound(unittest.TestCase):
+class PatternTestCase(unittest.TestCase):
     def assert_found(self, feedback, pattern, expected_entities):
         self.assertIn(f'Found potential instance of {pattern} pattern',
                       feedback)
         for entity in expected_entities:
             self.assertIn(entity, feedback)
 
+    def assert_not_found(self, feedback, pattern):
+        self.assertIn(
+            f'Could not find any potential instances of {pattern} pattern',
+            feedback)
+
+    def assert_almost_complete(self, feedback, missing_entity):
+        self.assertIn('almost complete', feedback)
+        self.assertIn(f'MISSING ENTITY: {missing_entity}', feedback)
+
+
+class TestPatternsFound(PatternTestCase):
     def test_singleton_found(self):
         feedback = detect('Singleton', 'singleton')
 
@@ -52,7 +63,7 @@ class TestPatternsFound(unittest.TestCase):
                            'class: ConcreteStrategyB'])
 
 
-class TestPatternsNotFound(unittest.TestCase):
+class TestPatternsNotFound(PatternTestCase):
     def test_patterns_not_found_in_other_pattern_repos(self):
         cases = [('Strategy', 'templateMethod'),
                  ('Strategy', 'singleton'),
@@ -85,6 +96,68 @@ class TestPatternsNotFound(unittest.TestCase):
 
         self.assertIn('Could not find any potential instances of strategy '
                       'pattern', feedback)
+
+
+class TestPythonPatterns(PatternTestCase):
+    def test_singleton_found(self):
+        feedback = detect('Singleton', 'singleton', 'python')
+
+        self.assert_found(feedback, 'singleton',
+                          ['class: Singleton', 'field: _instance',
+                           'method: get_instance'])
+
+    def test_singleton_using_new_found(self):
+        feedback = detect('SingletonNew', 'singleton', 'python')
+
+        self.assert_found(feedback, 'singleton',
+                          ['class: Singleton', 'field: _instance',
+                           'method: __new__'])
+
+    def test_template_method_found(self):
+        feedback = detect('TemplateMethod', 'templateMethod', 'python')
+
+        self.assert_found(feedback, 'templateMethod',
+                          ['abstractClass: TemplateT',
+                           'abstractMethod: do_something_first',
+                           'method: do_something',
+                           'class: ExtenderA', 'class: ExtenderB'])
+
+    def test_strategy_found(self):
+        feedback = detect('Strategy', 'strategy', 'python')
+
+        self.assert_found(feedback, 'strategy',
+                          ['class: ContextC', 'field: _strategy',
+                           'interface: Strategy',
+                           'abstractMethod: algorithm',
+                           'class: ConcreteStrategyA',
+                           'class: ConcreteStrategyB'])
+
+    def test_patterns_not_found_in_other_pattern_repos(self):
+        cases = [('Strategy', 'templateMethod'),
+                 ('Strategy', 'singleton'),
+                 ('TemplateMethod', 'strategy'),
+                 ('TemplateMethod', 'singleton'),
+                 ('Singleton', 'strategy'),
+                 ('Singleton', 'templateMethod')]
+        for repo, pattern in cases:
+            with self.subTest(repo=repo, pattern=pattern):
+                self.assert_not_found(detect(repo, pattern, 'python'),
+                                      pattern)
+
+    def test_singleton_with_public_instance_is_almost_complete(self):
+        feedback = detect('SingletonPublicInstance', 'singleton', 'python')
+
+        self.assert_almost_complete(feedback, 'private instance')
+
+    def test_template_method_without_subclass_is_almost_complete(self):
+        feedback = detect('TemplateMethodIncomplete', 'templateMethod',
+                          'python')
+
+        self.assert_almost_complete(feedback, 'subclass')
+
+    def test_strategy_without_concrete_strategies_is_not_found(self):
+        self.assert_not_found(
+            detect('StrategyIncomplete', 'strategy', 'python'), 'strategy')
 
 
 class TestErGraph(unittest.TestCase):

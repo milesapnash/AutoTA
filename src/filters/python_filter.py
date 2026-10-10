@@ -148,8 +148,8 @@ class PythonFilter(Filter):
     @staticmethod
     def modifiers_of(node):
         """Python has no access modifiers, so a leading underscore is taken
-        to mean private. Class attributes and static or class methods are
-        static."""
+        to mean private. Class attributes, static or class methods and
+        __new__ are static."""
         name = PythonFilter.name_of(node) or ''
         is_dunder = name.startswith('__') and name.endswith('__')
         modifiers = {'private' if name.startswith('_') and not is_dunder
@@ -162,7 +162,8 @@ class PythonFilter(Filter):
             decorators = decorator_names(node)
             if 'abstractmethod' in decorators:
                 modifiers.add('abstract')
-            if 'staticmethod' in decorators or 'classmethod' in decorators:
+            if (node.name == '__new__' or 'staticmethod' in decorators
+                    or 'classmethod' in decorators):
                 modifiers.add('static')
         elif isinstance(node, ASSIGNMENTS):
             if isinstance(assignment_targets(node)[0], ast.Name):

@@ -79,7 +79,7 @@ class ReviewProject:
         for pattern in patterns:
             pattern_feedback.append('-' + pattern.pattern + '\n' +
                                     pattern.find_potential_isomorphisms(
-                                        self.er_graph))
+                                        self.er_graph, self.spec.language))
 
         return pattern_feedback
 

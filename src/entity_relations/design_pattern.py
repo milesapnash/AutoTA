@@ -17,7 +17,7 @@ def check_dict(dict_a, dict_b):
                for modifier in dict_a.get('modifiers', ()))
 
 
-def pattern_library(pattern):
+def pattern_library(pattern, language=None):
     pattern_dict = {
         'singleton':
             ({
@@ -87,6 +87,29 @@ def pattern_library(pattern):
                  }
              })}
 
+    # The patterns above are general, and are used for every language. A
+    # pattern is only redefined for a language here when the general
+    # definition cannot apply to it.
+    language_overrides = {
+        # Python has no private constructors and its types are optional, so
+        # a Singleton is a class holding a private class attribute that is
+        # reached through a static method, a class method or __new__
+        ('singleton', 'python'):
+            ({
+                 'singleton': Class(),
+                 'private instance': Field(
+                     info={'modifiers': {'private', 'static'}}),
+                 'get_instance': Method(
+                     info={'modifiers': {'static'}})
+             }, {
+                 'singleton': {
+                     'has': ['private instance',
+                             'get_instance']
+                 }
+             })}
+
+    if (pattern, language) in language_overrides:
+        return language_overrides[(pattern, language)]
     if pattern in pattern_dict.keys():
         return pattern_dict[pattern]
     return None, None
@@ -125,7 +148,9 @@ class DesignPattern:
             graph_entity.info) and self.relations_contained(
             relations, graph_entity.relations)
 
-    def find_potential_isomorphisms(self, graph):
+    def find_potential_isomorphisms(self, graph, language=None):
+        self.entity_dict, self.relation_dict = pattern_library(self.pattern,
+                                                               language)
         node_dict = {}
         missing_nodes = []
         not_found = (f'Could not find any potential instances of '

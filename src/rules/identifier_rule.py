@@ -1,4 +1,3 @@
-from src.filters.base_filter import get_node_name
 from src.rules.rule import Rule
 
 
@@ -15,14 +14,11 @@ class IdentifierRule(Rule):
 
         feedback = []
         for node in self.node_filter.get_nodes(ast):
-
-            line, char = node.position
-            name = get_node_name(node, file.language)
-
             feedback.append(
-                (line, f'The {self.node_filter.node_class}, '
-                       f'{name}, does not follow the specified '
-                       f'naming convention.'))
+                (self.node_filter.line_of(node),
+                 f'The {self.node_filter.node_class}, '
+                 f'{self.node_filter.name_of(node)}, does not follow the '
+                 f'specified naming convention.'))
 
         return feedback
 

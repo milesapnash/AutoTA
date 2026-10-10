@@ -36,16 +36,25 @@ class JavaFilter(Filter):
 
         return isinstance(node, self.class_map[self.node_class])
 
+    @staticmethod
+    def name_of(node):
+        if hasattr(node, 'name'):
+            return node.name
+        if hasattr(node, 'declarators'):
+            return node.declarators[0].name
+        return None
+
+    @staticmethod
+    def line_of(node):
+        line, _ = node.position
+        return line
+
     def _filter_node_name(self, node):
         if self.node_name is None:
             return True
-        if not hasattr(node, 'name'):
-            if hasattr(node, 'declarators'):
-                comp_name = node.declarators[0].name
-            else:
-                return False
-        else:
-            comp_name = node.name
+        comp_name = self.name_of(node)
+        if comp_name is None:
+            return False
         return re.match(self.node_name, comp_name)
 
     def _filter_node_modifiers(self, node):

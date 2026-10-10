@@ -1,4 +1,4 @@
-from src.filters.java_filter import JavaFilter
+from src.languages import LANGUAGES
 from src.rules.rule import Rule
 
 
@@ -15,26 +15,24 @@ class EncapsulationRule(Rule):
             return []
 
         feedback = []
-        if file.language == 'java':
-            for ast_class in JavaFilter(node_class='class').get_nodes(ast):
-                visible_fields = JavaFilter(node_class='field',
-                                            node_modifiers=['private'],
-                                            negatives=[
-                                                'node_modifiers']).get_nodes(
-                    ast_class)
+        node_filter = LANGUAGES[file.language].filter
+        for ast_class in node_filter(node_class='class').get_nodes(ast):
+            visible_fields = node_filter(node_class='field',
+                                         node_modifiers=['private'],
+                                         negatives=['node_modifiers']
+                                         ).get_nodes(ast_class)
 
-                for field in visible_fields:
-                    line, char = field.position
-                    name = field.declarators[0].name
-                    feedback.append(
-                        (line, f'In class {ast_class.name}, the {name} '
-                               f'field is not private'))
+            for field in visible_fields:
+                feedback.append(
+                    (node_filter.line_of(field),
+                     f'In class {node_filter.name_of(ast_class)}, the '
+                     f'{node_filter.name_of(field)} field is not private'))
 
-                if self._getters:
-                    pass
+            if self._getters:
+                pass
 
-                if self._setters:
-                    pass
+            if self._setters:
+                pass
 
         return feedback
 

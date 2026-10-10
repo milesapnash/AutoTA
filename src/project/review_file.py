@@ -1,15 +1,6 @@
 import os
 
-import javalang as java_ast
-
-
-def parse_java(contents):
-    tokens = list(java_ast.tokenizer.tokenize(contents))
-    return java_ast.parser.Parser(tokens).parse()
-
-
-# To support another language, register its file extension, name and parser
-LANGUAGES = {'.java': ('java', parse_java)}
+from src.languages import LANGUAGES, language_of
 
 
 class ReviewFile:
@@ -26,10 +17,9 @@ class ReviewFile:
         else:
             self.contents = contents
 
-        extension = os.path.splitext(file_name)[1]
+        self.language = language_of(file_name)
 
-        if extension in LANGUAGES:
-            self.language, parse = LANGUAGES[extension]
-            self.ast = parse(self.contents)
+        if self.language is not None:
+            self.ast = LANGUAGES[self.language].parse(self.contents)
         else:
             self.ast = None

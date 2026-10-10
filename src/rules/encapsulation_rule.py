@@ -25,9 +25,9 @@ class EncapsulationRule(Rule):
 
                 for field in visible_fields:
                     line, char = field.position
+                    name = field.declarators[0].name
                     feedback.append(
-                        (line, f'In class'
-                               f' {ast_class.name}, the {field.declarators[0].name} '
+                        (line, f'In class {ast_class.name}, the {name} '
                                f'field is not private'))
 
                 if self._getters:
@@ -39,4 +39,4 @@ class EncapsulationRule(Rule):
         return feedback
 
     def __str__(self):
-        return f'-Encapsulation Rule'
+        return '-Encapsulation Rule'

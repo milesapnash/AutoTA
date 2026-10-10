@@ -78,11 +78,10 @@ def first_pass(file, first_pass_dict):
         if isinstance(class_node, java_ast_tree.ClassDeclaration):
             abstract_class = 'abstract' in class_node.modifiers
             info = {'name': class_node.name}
-            class_entity = AbstractClass(info=info, node=class_node,
-                                         package=package_name,
-                                         file=full_file_name) if abstract_class else Class(
-                info=info, node=class_node, package=package_name,
-                file=full_file_name)
+            entity_type = AbstractClass if abstract_class else Class
+            class_entity = entity_type(info=info, node=class_node,
+                                       package=package_name,
+                                       file=full_file_name)
 
             file_entities.append(class_entity)
             add_node_to_dict(first_pass_dict, class_node.name,

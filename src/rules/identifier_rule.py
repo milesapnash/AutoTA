@@ -21,9 +21,10 @@ class IdentifierRule(Rule):
 
             feedback.append(
                 (line, f'The {self.node_filter.node_class}, '
-                       f'{name}, does not follow the specified naming convention.'))
+                       f'{name}, does not follow the specified '
+                       f'naming convention.'))
 
         return feedback
 
     def __str__(self):
-        return f'-Identifer Rule'
+        return '-Identifier Rule'

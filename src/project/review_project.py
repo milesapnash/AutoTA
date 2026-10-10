@@ -66,10 +66,13 @@ class ReviewProject:
             if not rule_feedback:
                 if isinstance(rule, EncapsulationRule):
                     complete_feedback.append(
-                        f'All classes within {rule.scope} were properly encapsulated')
+                        f'All classes within {rule.scope} were properly '
+                        f'encapsulated')
                 elif isinstance(rule, IdentifierRule):
                     complete_feedback.append(
-                        f'All {rule.node_filter.node_class}s within {rule.scope} had the correct identifier format of {rule.node_filter.node_name}')
+                        f'All {rule.node_filter.node_class}s within '
+                        f'{rule.scope} had the correct identifier format of '
+                        f'{rule.node_filter.node_name}')
             else:
                 complete_feedback.extend(rule_feedback)
         complete_feedback.append("")

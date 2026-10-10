@@ -65,7 +65,7 @@ def print_graph(entities, relations):
 
 def first_pass(file, first_pass_dict):
     ast = file.ast
-    package_name = ast.package.name if hasattr(ast, 'package') else None
+    package_name = ast.package.name if ast.package else None
     full_file_name = os.path.join(file.relative_path, file.file_name)
 
     file_entities = []

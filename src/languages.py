@@ -4,6 +4,7 @@ from collections import namedtuple
 import javalang
 
 from src.entity_relations.java_graph import build_java_graph
+from src.entity_relations.python_graph import build_python_graph
 from src.filters.java_filter import JavaFilter
 from src.filters.python_filter import PythonFilter
 
@@ -20,7 +21,7 @@ def parse_java(contents):
 # and ER graph builder here
 LANGUAGES = {
     'java': Language('.java', parse_java, JavaFilter, build_java_graph),
-    'python': Language('.py', ast.parse, PythonFilter, None)
+    'python': Language('.py', ast.parse, PythonFilter, build_python_graph)
 }
 
 

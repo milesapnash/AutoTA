@@ -76,13 +76,15 @@ def is_field(node, in_method):
 
 
 def classify(tree):
-    """Yields a (kind, node) pair for every node in the tree. Python's AST
-    does not distinguish constructors from methods or fields from local
-    variables, so a node's kind depends on where it appears."""
+    """Yields a (kind, node, owner) triple for every node in the tree, where
+    owner is the class that a constructor, method or field belongs to.
+    Python's AST does not distinguish constructors from methods or fields
+    from local variables, so a node's kind depends on where it appears."""
     seen_fields = set()
 
     def visit(node, owner, in_method):
         kind = 'node'
+        member_of = None
         child_owner, child_in_method = owner, in_method
         if isinstance(node, ast.ClassDef):
             kind = class_kind(node)
@@ -91,6 +93,7 @@ def classify(tree):
             is_member = owner is not None and not in_method
             kind = ('constructor' if is_member and node.name == '__init__'
                     else 'method')
+            member_of = owner if is_member else None
             child_in_method = owner is not None
         elif (isinstance(node, ASSIGNMENTS) and owner is not None
               and is_field(node, in_method)):
@@ -99,10 +102,11 @@ def classify(tree):
             if key not in seen_fields:
                 seen_fields.add(key)
                 kind = 'field'
+                member_of = owner
         elif isinstance(node, ast.Call):
             kind = 'method_invocation'
 
-        yield kind, node
+        yield kind, node, member_of
         for child in ast.iter_child_nodes(node):
             yield from visit(child, child_owner, child_in_method)
 
@@ -237,5 +241,5 @@ class PythonFilter(Filter):
         ])
 
     def get_nodes(self, tree):
-        return [node for kind, node in classify(tree)
+        return [node for kind, node, _ in classify(tree)
                 if self._passes_filter(kind, node)]

@@ -1,4 +1,6 @@
-from src.entity_relations.er_classes import *
+from src.entity_relations.er_classes import (
+    AbstractClass, AbstractMethod, Class, Constructor, Entity, Field,
+    Interface, Method)
 
 
 def not_none_check(a, b):

@@ -2,7 +2,10 @@ import os.path
 
 import javalang.tree as java_ast_tree
 
-from src.entity_relations.er_classes import *
+from src.entity_relations.er_classes import (
+    AbstractClass, AbstractMethod, Class, Constructor, Extends, Field, Has,
+    HasReturnType, Implements, Interface, Invokes, IsOfType, Method,
+    Overrides, ParameterOfType)
 from src.entity_relations.utils import add_node_to_dict, find_in_dict
 
 

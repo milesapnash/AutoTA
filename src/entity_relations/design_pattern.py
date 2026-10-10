@@ -8,16 +8,13 @@ def not_none_check(a, b):
 
 
 def check_dict(dict_a, dict_b):
+    """Checks that every modifier required by dict_a is present in dict_b."""
     if dict_a is None:
         return True
     if dict_b is None:
         return False
-    for k, vs in dict_a.items():
-        if k == 'modifiers':
-            for v in vs:
-                if v not in dict_b[k]:
-                    return False
-    return True
+    return all(modifier in dict_b.get('modifiers', ())
+               for modifier in dict_a.get('modifiers', ()))
 
 
 def pattern_library(pattern):

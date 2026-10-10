@@ -1,0 +1,36 @@
+\ourchapter{Introduction}
+
+This project looks at applying automation to generate detailed feedback for students' code by detecting instances of composable structural patterns.
+
+\section{Motivation}
+\label{sec: Motivation}
+Learning to program is a challenging task, achieved most effectively through the act of programming itself, rather than traditional didactic methods~\cite{DifficultyOfProgramming}. Through practice in solving coding exercises, students gain knowledge of fundamental programming constructs and the situations in which to apply them~\cite{OnTheNatureOfProgrammingExercises}. To maximise these benefits, students should be provided with timely, useful feedback on their choices and hints as to how they should proceed~\cite{TowardsGivingTimelyFormativeFeedback}, extending from their code's functional correctness to other, more nuanced core programming skills such as flexibility, maintainability, and readability~\cite{AutomatedGradingandFeedbackTools}.
+
+These aspects of program design can be analysed and graded through a manual inspection of source code by a more experienced programmer, in the form of a code review~\cite{CodeReviewInEducation}. However, these are labour-intensive, require considerable effort, and can lead to delays in other work as it is difficult to predict their duration~\cite{WhyCannotModelCodeReviewTime}. Consequently, some aspects of evaluating programs are often automated. Correctness can largely be verified through unit tests, which themselves can be validated through test coverage metrics, and code style can be checked with linters. On the other hand, the more abstract, structural elements of program design still require human judgement.
+
+A similar, partially automated, tool-based approach is used in modern industry~\cite{ModernCodeReview}, where code review has become an almost ubiquitous practice. The process has evolved from the rigid, line-by-line inspections of the 1980s~\cite{SoftwareInspections} to a lightweight analysis of changes in code~\cite{ModernCodeReview}, with the primary goal shifting from defect-hunting to discussing structural patterns and group problem-solving~\cite{EmpiricalCodeReview}. As a result of this more collaborative approach, knowledge transfer and consideration of alternative solutions have become much more prominent outcomes~\cite{ExpectationsOfModernCodeReview}, suggesting that structure-based reviews promote more conscious design choices.
+
+Automating more of the process of feedback generation by detecting these structural patterns would not only enable students to receive feedback more quickly, but also allow more time for discussions and learning opportunities. There are a variety of tools that attempt more nuanced analysis already available~\cite{AutomatedGradingandFeedbackTools}, but fewer with a focus on educating users. An effective implementation would give meaningful feedback whilst maintaining a more educative, guiding approach, and be adaptable enough to be used on a range of different exercises.
+
+\clearpage
+
+\section{Objectives}
+This project aims to implement a system, \textbf{\emph{AutoTA}}, which can analyse source code written by students and provide useful feedback about the structural features present. As such, the primary objectives for this \textbf{\emph{Automated Teaching Assistant}} are to:
+\begin{enumerate}
+    \item Automatically detect potential instances of structural patterns within student code according to a provided specification.
+    \item Be adapted for assignments in a variety of different Object-Oriented programming languages and specifications with minimal re-tooling.
+    \item Provide users with concise and comprehensive feedback, whilst maintaining an educational approach of hinting and encouragement.
+\end{enumerate}
+
+\section{Ethical Considerations}
+Given the aim to focus this project on code written by students, it is essential to ensure that their ownership is respected throughout development. Students own the intellectual property generated during their studies, meaning any of their data or work should be securely stored, and that informed consent must be obtained before utilising third parties to aid in generating feedback. Similarly, any previous feedback and marks are identifiable data, and if intended to be used in training, testing, or evaluation will also require consent and anonymisation.
+
+Consideration should also be given to the extent to which the marking process for assignments should be automated. In higher education, students often take a more transactional approach towards the number of contact hours they receive and expect to be taught by well-qualified individuals~\cite{StudentExpectations}. Fully automating this process could detract from the overall learning experience by reducing opportunities for more specialised discussion or one-to-one teaching. As such, the system should provide feedback for a human marker to act on, rather than replace them completely, with a smaller scope allowing for a focus on correctness.
+
+\section{Report Structure}
+The structure of this report is as follows:
+\begin{itemize}
+    \item For background, \Cref{chapter:background} details crucial concepts required to understand the remainder of the project work, while \Cref{chapter:relatedwork} lists related works that apply these concepts to achieve similar objectives.
+    \item The next three chapters outline the implementation of the project. In particular, \Cref{chapter:part1} discusses the prospect of using Large Language Models (LLMs) in reviewing code and their limitations. \Cref{chapter:part2} then details how static code analysis can provide a more deterministic representation of code structure, followed by \Cref{chapter:part3} explaining how structural patterns can be composed and detected following static analysis.
+    \item Finally, \Cref{chapter:evaluation} evaluates the software produced in this project on real student code, before \Cref{chapter:conclusion} concludes the project and suggests potential future avenues of research.
+\end{itemize}

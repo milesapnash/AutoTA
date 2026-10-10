@@ -25,3 +25,6 @@ feedback.pdf
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+_minted*/
+svg-inkscape/
+doc/report/main.pdf

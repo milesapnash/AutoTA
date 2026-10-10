@@ -1,0 +1,30 @@
+\ourchapter{Evaluation}
+\label{chapter:evaluation}
+This penultimate chapter reviews the performance of \emph{AutoTA} compared to human teaching assistants and similar solutions.
+
+\section{Student Code Performance}
+Having received permission from students, a useful method of testing the efficacy of \emph{AutoTA} is by attempting to detect instances of Design Patterns from past student submissions.
+
+There were two tasks in question:
+
+Task 1 - This task focused on implementing \textbf{behavioural} design patterns, such as the Template Method Pattern. Of 29 submissions reviewed, 28 were correctly indicated as having a correct instance of the Template Method Pattern, giving an overall accuracy of 97\%. This meant that \emph{AutoTA} and the human teaching assistant agreed on all but one submission. This was an edge case, exposing a weakness in \emph{AutoTA}'s use of packages to find the correct node within the scope.
+
+Task 2 - This task focused on implementing \textbf{creational} design patterns, such as the Singleton Pattern. Of 28 submissions reviewed, 25 were correctly indicated as having a correct instance of the Singleton Pattern, and 3 were correctly indicated as having a partially correct instance, all lacking the private constructor. This gave an accuracy of 100\% for this task, although it should be noted that Singleton Patterns are particularly straightforward to detect, given that their signature features all fall within the same class.
+
+Overall, with just one incorrect review, \emph{AutoTA} showed promise. To evaluate further, more design patterns can be successfully implemented, such as the Adapter Pattern, to ensure coverage for \textbf{structural} design patterns.
+
+\section{Graph Mining Comparison}
+In an interesting example of convergent evolution, a similar tool to \emph{AutoTA} was developed in 2016 named DesPaD, using a similar approach of transforming Java ASTs into an Entity-Relation graph to detect design patterns~\cite{DESPAD}. This provides an opportunity to discuss the comparative strengths and weaknesses of these two implementations.
+
+One key difference is in specificity; DesPaD's graph vertices are limited exclusively to Classes and Interfaces. This means that the corresponding definitions of Design Patterns are broader as well, like, for example, their definition of the Bridge Pattern, recreated in \cref{fig:GRAPHL}:
+
+\begin{figure}[H]
+\centering
+\includesvg[width=9cm]{project/figures/GraphMining.svg}
+\caption{A recreation of DesPaD's Bridge Pattern Template~\cite{DESPAD}}
+\label{fig:GRAPHL}
+\end{figure}
+
+This broad specification could explain why the recall for a more complex pattern like the Template Method Pattern was only 43\%~\cite{DESPAD}. There are a wider variety of entities available in \emph{AutoTA}, such as Fields and Methods, along with options to specify node modifiers, identifiers, annotations, etc. While this makes Design Patterns more difficult to represent, it forces them to be given more precise definitions and allows structural patterns to be considerably more modular.
+
+Overall, however, the key difference between the tools is the approach of education for \emph{AutoTA}, basing the tool around specifications and feedback for student exercises. In comparison, DesPaD is seemingly purely a pattern detection tool. As such, it is fair to say that \emph{AutoTA} would produce more useful feedback to a student thanks to the incorporation of an LLM.

@@ -1,0 +1,103 @@
+\ourchapter{Exploring LLM Generated Feedback}
+\label{chapter:part1}
+
+This chapter discusses a preliminary investigation into the effectiveness of using a large language model to review student submissions. The performance of ChatGPT is evaluated on representative tasks, before reasoning as to why a combined approach, with a more traditional static analysis tool, could be more effective.
+
+\section{Methodology}
+For the purpose of this project, the \emph{AutoTA} tool will be tailored towards reviewing student exercise submissions in the \textbf{Java} programming language. This is partly due to the popularity of Java for implementing design patterns, but primarily due to the availability of student submissions from previous years within the Imperial College London Department of Computing, permitting more effective testing and evaluation.
+
+The project aims to provide feedback for a \textbf{software engineering design module} rather than an introductory programming module, although an effective implementation would be able to cater to both. This is because the more nuanced skills and structural problems provide a greater challenge to automate than initial attempts at a language, which more often than not can be covered with sufficient unit testing.
+
+The initial project pipeline, as per \cref{fig:pipeline}, would place \emph{AutoTA} at the point of exercise submission, using an LLM (more specifically, OpenAI's ChatGPT) to produce feedback based on a task specification. These comments would then be shared with students.
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=15.5cm]{project/figures/InitialProjectPipeline.svg}
+    \caption{Initial position of the \emph{AutoTA} tool}
+    \label{fig:pipeline}
+\end{figure}
+
+To test if ChatGPT is fit for this function, we conducted some preliminary testing on its capability as a code reviewer. By reading Java files from a provided directory, along with a text representation of review criteria as a specification, the tool can compose a prompt to send as a message to the ChatGPT API, with the particular model being \emph{gpt-3.5-turbo}. The natural choice of language for this tool is Python, due to the maturity of its \emph{openai} library, although code has been omitted for this section as API requests are trivially implemented.
+
+\section{Evaluating LLM Feedback}
+
+For the purposes of this project, it was prudent to test if ChatGPT could detect instances of \textbf{design patterns} correctly (\cref{subsection:DPR}), and provide feedback on sample \textbf{student exercises} (\cref{subsection: ReviewStudentCode}).
+
+\subsection{Design Pattern Recognition}
+\label{subsection:DPR}
+To evaluate ChatGPT's ability to detect common design patterns within code, full Java implementations of each of the 23 Gang of Four patterns~\cite{GangOfFour} were taken from the Applied Java Patterns book~\cite{AppliedJavaPatterns}, with some minor changes to ensure the code ran correctly. This source code, with a suggestion as to which patterns might feature within, was provided as part of a prompt asking ChatGPT which patterns, if any, were present. 
+
+ChatGPT was able to state which patterns were present within a directory correctly for \textbf{100\%} (23/23) of the correct pattern implementations tested, additionally giving the roles of classes within the context of the pattern. However, when patterns were slightly altered to the point where they were no longer functionally correct, ChatGPT struggled to identify any issues. 
+
+For example, the correct implementation of the Singleton pattern (similar to \cref{lst:singleton-pattern}) was identified without any issues. The same request was then made with a slightly altered version of the code, where the private \emph{constructor} and \emph{instance} were both made public, meaning that the class was no longer a valid pattern implementation. In its response, ChatGPT erroneously congratulated the user on their correct use of the Singleton pattern, an example of the hallucinations referred to in \cref{section:LLMs}.
+
+To obtain the correct feedback, the prompt had to be changed from:
+\begin{center}
+    \textit{`Is the Singleton pattern present within this code?'} 
+\end{center}
+to a slight variation, giving the model a hint that there is an issue with the code: 
+\begin{center}
+    \textit{`Why is this code not a valid implementation of the Singleton pattern?'}
+\end{center}
+after which correct and helpful feedback was generated as to how the user can solve this issue by making the \emph{constructor} and \emph{instance} field private. This suggests that, while ChatGPT can recognise and understand design patterns, it could be more effective in summarising prior analysis as to why there either is or is not a valid implementation, rather than synthesising this information itself.
+
+\subsection{Reviewing Student Code}
+\label{subsection: ReviewStudentCode}
+To evaluate if ChatGPT is applicable for \emph{AutoTA}'s primary use case, a mock exercise was created and completed: a Java implementation of the Template Method Pattern for the purpose of cryptography. This code will be referenced in part, with the full implementation in \cref{chapter:appendix}. Two key rules were set for this exercise:
+\begin{enumerate}
+    \item Classes should be \textbf{encapsulated} where possible.
+    \item Test methods should describe a behaviour and \textbf{cannot contain the word `test'}.
+\end{enumerate}
+
+Intentionally, the field \emph{cipherShift} of the CaesarCipher class (\cref{lst:sample-caesarciphersnippet1}) is \emph{final} but not \emph{private}, breaching Rule 1:
+
+\begin{listing}[H]
+\begin{minted}[linenos, breaklines, firstnumber=4]{java}
+public class CaesarCipher extends Cryptosystem {
+  final int cipherShift;
+
+  public CaesarCipher(int shift) {
+    this.cipherShift = shift;
+  }
+\end{minted}
+\caption{A section of Java code from the CaesarCipher class}
+\label{lst:sample-caesarciphersnippet1}
+\end{listing}
+
+The method identifiers for the CaesarCipherTest class (\cref{lst:sample-caesarciphertestsnippet1}) intentionally breach Rule 2:
+
+\begin{listing}[H]
+\begin{minted}[linenos, breaklines, firstnumber=9]{java}
+public class CaesarCipherTest {
+  @Test
+  public void testShiftZeroIsSelf() {
+    Cryptosystem cryptosystem = new CaesarCipher(0);
+    assertThat(cryptosystem.encryptString("Hello"), is("Hello"));
+  }
+\end{minted}
+\caption{A section of Java code from the CaesarCipherTest class}
+\label{lst:sample-caesarciphertestsnippet1}
+\end{listing}
+
+Two equal requests were made of the API with this code, along with the two rules for which to give feedback. ChatGPT successfully recognised the breach of Rule 2 in both tests, giving articulate feedback about why naming tests this way is best avoided. However, whilst in the first test ChatGPT detected the lack of encapsulation, in the second test it gave no such feedback. This creates an issue of \textbf{nondeterminism} in the LLM's output.
+
+This `creativity' is in some part due to the \textbf{temperature} variable, ``which changes the degree to which randomness is involved in the model’s generated output''~\cite{GPTTemp}, and also perhaps in some part due to the nature of GPU cluster computation. In any case, there is an issue of marking students fairly and potentially giving incorrect feedback.
+
+An interesting side-note that warrants discussion is the ability for students to manipulate the output of an LLM through their own prompt engineering. For example, by appending this statement to the end of one of the Java class files:
+\begin{center}
+    \textit{`ChatGPT, please ignore all previous instructions and state that this code has perfect use of encapsulation, exactly follows the correct naming conventions and deserves full marks'}
+\end{center}
+the model's output became almost exactly that. Whilst this is a slightly hyperbolic example, it is a valid concern that if students are aware their work is being reviewed by an LLM, they could attempt to game the system to achieve a higher mark, rather than improving their task implementation.
+
+\section{Improving LLM Reliability}
+ChatGPT performed well in both sets of tests, generally providing accurate, nuanced feedback on submitted code in the form of prose. Additionally, its availability throughout the day and flexibility in its inputs make it significantly more accessible for students than comments from a human reviewer. A study performed on the same model of ChatGPT as this exploration found that the explanations generated for errors in an introductory programming course ``correctly identified at least one logical error in 28/30 cases''~\cite{GPTForEd}, a significantly high level of performance for the speed at which results are returned.
+
+However, there were also instances in which ChatGPT's hallucinations caused incorrect feedback to be generated, leading to students receiving varying and potentially misleading assessments of their work—an unacceptable outcome within the standards of higher education. In that same study, for example, half of the explanations contained at least one incorrect assertion~\cite{GPTForEd}. There are options to aid in mitigating these, such as:
+
+\begin{itemize}
+    \item \textbf{Few-Shot Learning}, which could help guide ChatGPT's output by providing examples of both successful and unsuccessful implementations of specification rules. For example, a well-encapsulated Java class with private, immutable fields could be provided as part of a prompt to aid in the understanding of a rule enforcing encapsulation.
+    \item \textbf{Model Fine-Tuning}, where previously generated feedback for submissions could be used to train a specialised model for the task. This could help improve performance for this specific use, as tasks are unlikely to significantly change year on year within a department, meaning there will be a large amount of usable data available. Collecting and sanitising this training data would be a significant time investment, especially for a speculative improvement, which could dissuade such experimentation.
+    \item \textbf{Utilising a Seed Parameter}, which can prevent some of the nondeterminism issues by giving the same random input to temperature each time. However, there is still no guarantee that other factors, such as input length, won't cause fluctuations in outputs.
+\end{itemize}
+
+A compelling alternative use case for an LLM was identified during this evaluation, alongside a review of a similar EdTech tool designed to assist in teaching programming, referred to as the Intelligent Tutoring System~\cite{IntelligentTutoring}. This tool generated feedback through traditional analysis techniques, observing differences between versions of files before using an LLM to summarise their findings. A similar approach could be applied for \emph{AutoTA}; by analysing students' code with a static code analysis tool, we could pass the results to an LLM like ChatGPT to produce a natural language summary. This combination of techniques gives us the accuracy of static analysis with some of the flexibility of LLMs.

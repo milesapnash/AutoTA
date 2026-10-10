@@ -1,0 +1,201 @@
+\documentclass[a4paper, 10pt]{report}
+
+% Page Layout
+\usepackage[margin=1in, headheight=13.6pt]{geometry}
+
+% Language & Fonts
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+\usepackage[tt=false, type1=true]{libertine} % Libertine font for text
+\usepackage[libertine]{newtxmath}            % Libertine font for math
+\usepackage[varqu]{zi4}                      % Inconsolata font for code
+\usepackage[scaled=0.8, lining]{FiraMono}    % FiraMono font, scaled down
+
+% Formatting
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[figurename=Fig.]{caption}
+
+% Math
+\usepackage{amsmath}
+
+% Graphics
+\usepackage{graphicx}
+\usepackage{svg}
+\usepackage{tikz}
+
+% Lists & Tables
+\usepackage{enumitem}
+\usepackage{multirow}
+
+% Code
+\usepackage{fancyvrb}
+\usepackage{minted}
+\usepackage{verbatimbox}
+
+% Hyperlinks and references
+\usepackage{xr-hyper}
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+% Colours
+\usepackage{xcolor}
+
+% Miscellaneous
+\usepackage{textcomp}
+\usepackage{flafter}
+\usepackage{float}
+\usepackage{scalerel}[2016/12/29]
+\usepackage{sansmath}
+\usepackage{placeins}
+\usepackage{semantic}
+\usepackage{subcaption}
+\usepackage[nounderscore]{syntax}
+\usepackage{subfiles}
+\usepackage{pifont}
+\usepackage[most]{tcolorbox}
+\usepackage{changepage}
+\usepackage[autostyle]{csquotes}
+\usepackage{parskip}
+
+% Bibliography
+\usepackage[backend=biber, style=ext-authoryear, uniquename=false]{biblatex}
+
+\let\cite\parencite
+\addbibresource{bibliography.bib}
+
+\DeclareOuterCiteDelims{parencite}{\bibopenbracket}{\bibclosebracket}
+\DeclareInnerCiteDelims{textcite}{\bibopenbracket}{\bibclosebracket}
+
+\DeclareFieldFormat{citehyperref}{%
+  \DeclareFieldAlias{bibhyperref}{noformat}% Avoid nested links
+  \bibhyperref{#1}}
+
+\DeclareCiteCommand{\parencite}[\mkouterparencitedelims]
+  {\usebibmacro{prenote}}
+  {\usebibmacro{citeindex}%
+   \printtext[citehyperref]{\usebibmacro{cite}}}
+  {\multicitedelim}
+  {\usebibmacro{postnote}}
+
+\setstretch{1.5}
+
+% Custom Colours
+\definecolor[named]{ImperialBlueNew}{HTML}{0000cd}
+\definecolor[named]{ACMDarkBlue}{cmyk}{1, 0.58, 0, 0.21}
+
+% Hyperref Setup
+\hypersetup{
+    colorlinks,
+    linkcolor=ImperialBlueNew,
+    citecolor=ImperialBlueNew,
+    urlcolor=ACMDarkBlue,
+    filecolor=ACMDarkBlue
+}
+
+% Set up minted options
+\usemintedstyle{xcode}
+\setlength{\grammarparsep}{1pt}
+\setminted{ 
+    linenos,
+    frame=lines,
+    framesep=2mm,
+    baselinestretch=1.15,
+    bgcolor=white,
+    breaklines,
+    escapeinside=||
+}
+
+% Renders a Chapter more like an "article part"
+\assignpagestyle{\chapter}{fancy}
+\titleformat{\chapter}[display]{}{\bfseries\Large \chaptertitlename \ \thechapter}{-5pt}{\bfseries\huge}
+\titlespacing*{\chapter}{0pt}{-30pt}{10pt}
+
+% Page Header and Footer
+\pagestyle{fancy}
+\providecommand{\chaptertitle}{}
+\newcommand{\ourchapter}[1]{\pagebreak\chapter{#1}\renewcommand{\chaptertitle}{#1}}
+
+% Document Details
+\title{AutoTA: Detecting Structural Patterns in Object-Oriented Code}
+\author{Miles Nash}
+\newcommand{\maintitle}{AutoTA}
+\newcommand{\mainsubtitle}{\emph{Detecting Structural Patterns in Object-Oriented Code}}
+
+% Fancy Header Settings
+\lhead{\maintitle: \mainsubtitle}
+\rhead{\textsc{\chaptertitle}}
+\lfoot{Miles Nash}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Cleveref Customisations
+\crefformat{chapter}{#2\textsc{chapter}~#1#3}
+\Crefformat{chapter}{#2\textsc{Chapter}~#1#3}
+\crefname{chapter}{chapter}{chapters}
+\Crefname{chapter}{Chapter}{Chapters}
+\crefname{figure}{fig.}{figs.}
+\Crefname{figure}{Fig.}{Figs.}
+\crefname{equation}{eq.}{eqs.}
+\Crefname{equation}{Eq.}{Eqs.}
+\crefformat{section}{#2\S#1#3}
+\Crefformat{section}{Section~#2#1#3}
+\crefformat{subsection}{#2\S#1#3}
+\Crefformat{subsection}{Section~#2#1#3}
+\crefformat{subsubsection}{#2\S#1#3}
+\Crefformat{subsubsection}{Section~#2#1#3}
+\newcommand{\creflastconjunction}{, and~}
+
+% Fix Footnote Formatting
+\makeatletter
+\let\footnote@orig\footnote
+\def\footnote{%
+  \begingroup
+  \@makeother\#%
+  \footnote@i
+}
+\long\def\footnote@i#1{%
+  \endgroup
+  \footnote@orig{#1}%
+}
+\makeatother
+
+\setlength\parindent{0pt}
+\begin{document}
+\pagenumbering{arabic}
+\include{preamble/title}
+
+\setcounter{page}{1}
+\setcounter{tocdepth}{2}
+\hypersetup{pageanchor=true}
+
+\include{preamble/abstract}
+
+\include{preamble/acknowledgements}
+
+\pagebreak
+\tableofcontents
+\pagebreak
+
+\pagebreak
+
+\include{introduction/introduction}
+\include{background/background}
+\include{relatedwork/relatedwork}
+
+\include{project/1llmResearch}
+\include{project/2staticAnalysis}
+\include{project/3abstractPatterns}
+
+\include{evaluation/evaluation}
+\include{conclusion/conclusion}
+
+\renewcommand{\chaptertitle}{Bibliography}
+\pagebreak
+\phantomsection
+\printbibliography[heading=bibintoc]
+
+\include{appendix/appendix}
+
+\end{document}

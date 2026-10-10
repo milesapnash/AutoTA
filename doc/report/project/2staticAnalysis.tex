@@ -1,0 +1,155 @@
+\ourchapter{Static Analysis Approach}
+\label{chapter:part2}
+This chapter explores the use of static analysis, specifically AST traversal, to develop checks for features of student code. The results of these checks can then be passed to an LLM to generate a summary.
+
+\section{Building and Filtering ASTs}
+
+We can test the effectiveness of analysing abstract syntax trees without the need to generate a parser for the task by importing a pre-existing Python library, such as \textbf{javalang}*. This is an open-source, pure Python lexer/parser for Java 8, which enables the generation of an AST representation of each class within a Java program:
+
+\footnotesize
+*The GitHub repository for javalang is accessible at \url{https://github.com/c2nes/javalang}
+\normalsize 
+
+\begin{listing}[H]
+\begin{minted}[linenos, breaklines]{python}
+import javalang
+
+with open(file_name, 'r') as file:
+    code = file.read()
+tree = javalang.parse.parse(code)
+\end{minted}
+\caption{Simple Python script to generate an AST from a given file\_name}
+\label{lst:python-asttest}
+\end{listing}
+
+This script could be run on the contents of CaesarCipher.java, in \cref{lst:sample-caesarcipherincode}:
+
+\begin{listing}[H]
+\begin{minted}[linenos, breaklines, firstnumber=3]{java}
+public class CaesarCipher extends Cryptosystem {
+  final int cipherShift;
+
+  public CaesarCipher(int shift) {
+    this.cipherShift = shift;
+  }
+
+  // Intentionally missing @Override annotation for testing
+  void transformInput() {
+  }
+
+  // Intentionally missing @Override annotation for testing
+  void applyCipher() {
+    this.text = shiftString(cipherShift);
+  }
+}
+\end{minted}
+\caption{CaesarCipher.java}
+\label{lst:sample-caesarcipherincode}
+\end{listing}
+
+\Cref{fig:CaesarCipherAST} displays an approximation of the AST generated for the Java code in \cref{lst:sample-caesarcipherincode}:
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=15.5cm]{project/figures/CaesarCipherAST.svg}
+    \caption{Simplified AST for the CaesarCipher class in \cref{lst:sample-caesarcipherincode}}
+    \label{fig:CaesarCipherAST}
+\end{figure}
+
+The nodes of this AST contain more information than just the type of node, such as ClassDeclaration or MethodInvocation. For example, in the case of the FieldDeclaration for `cipherShift', we also know it is of type \emph{int} and has a \emph{final} modifier. By constructing a function that checks these values while traversing an AST, we can create filters that return nodes based on specific types, modifiers, identifiers, return types, and more. Organising these filters into a class allows for easy reuse, exemplified by the \textbf{JavaFilter} class defined in \cref{lst:javafilter}. This approach can be readily expanded to include additional node features, although these have been omitted here for brevity.
+
+\begin{listing}[H]
+\begin{minted}[linenos, breaklines]{python}
+from javalang import tree
+
+class JavaFilter:
+    def __init__(self, node_class='node', node_modifiers=None):
+        self.node_class = node_class
+        self.node_modifiers = node_modifiers
+        self.class_map = {'node' : tree.Node, 'class': tree.ClassDeclaration,
+                          'method': tree.MethodDeclaration, 'field': tree.FieldDeclaration}
+
+    def filter_class(self, node):
+        return isinstance(node, self.class_map[self.node_class])
+
+    def filter_modifiers(self, node):
+        if self.node_modifiers is None or len(self.node_modifiers) == 0:
+            return True
+        return set(self.node_modifiers).issubset(set(node.modifiers))
+
+    def get_nodes(self, ast):
+        return [node for _, node in ast if 
+                self.filter_class(node) and self.filter_modifiers(node)]
+\end{minted}
+\caption{Partial implementation of a JavaFilter Python class}
+\label{lst:javafilter}
+\end{listing}
+
+If a filter were to be used on the AST in \cref{fig:CaesarCipherAST}, where \emph{node\_class='method'} and \emph{node\_return\_type='void'}, the two nodes matching that criteria, \emph{transformInput} and \emph{applyCipher} would be returned:
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=15.5cm]{project/figures/CaesarCipherFilteredAST.svg}
+    \caption{The result of applying a filter for MethodDeclaration nodes with return type void on \cref{fig:CaesarCipherAST}}
+    \label{fig:CaesarCipherFilteredAST}
+\end{figure}
+
+\section{Building Rules from Filters}
+
+As stated in \cref{subsection: ReviewStudentCode}, some of the most frequent rules in software engineering task specifications involve \textbf{class encapsulation} and \textbf{naming convention}. These rules can be efficiently translated into Python functions using the JavaFilter class. For instance, a function designed to enforce the rule that methods with the @Test annotation cannot contain the word `test' could be implemented as follows in \cref{lst:identifierRule}:
+
+\begin{listing}[H]
+\begin{minted}[linenos, breaklines]{python}
+def check_test_identifier_rule(file):
+    filter = JavaFilter(node_class='method', node_annotations=['Test'],
+                        node_name_format='r"^test"')
+    ast = javalang.parse.parse(file.contents)
+    feedback = []
+    for node in filter.get_nodes(ast):
+        feedback.append(
+            f'{file.file_name}:{node.position}: The {filter.node_class}, '
+            f'{node.name}, does not follow the desired naming convention.')
+
+    return feedback
+\end{minted}
+\caption{A Python function to produce feedback on test methods that contain `test' within their identifier}
+\label{lst:identifierRule}
+\end{listing}
+
+These rules can be encapsulated into classes, each taking a filter as an initialisation parameter. This approach allows filters, such as JavaFilter, to have a common Filter superclass, acting as an Adapter for ASTs representing code in different languages, such as Python, which utilises the \textbf{\emph{ast}} library. This enables rules to be language-agnostic, provided an AST for the language can be generated containing the relevant information. Furthermore, this approach permits the rules themselves to have a common Rule superclass, enabling shared functionality such as narrowing the scope of rules to specified directories, files, or parts of an abstract syntax tree.
+
+\section{Composing Filters for Patterns}
+These filters can also be used to check for the presence of nodes within pre-filtered nodes, due to the recursive structure of ASTs. As such, composing filters can facilitate checks for design patterns, such as the Singleton Pattern (\cref{lst:singleton-pattern}). In this function, a check for classes within each file's AST is followed by checks for a private field of the same type (the instance), a method of the class type (the getInstance method), and a private constructor.
+\begin{listing}[H]
+\begin{minted}[linenos, breaklines]{python}
+def find_singleton_pattern(files):
+    singletons = []
+    for file in files:
+        s_classes = JavaFilter(node_class='class').get_nodes(file.ast)
+        for s_class in s_classes:
+            # Get private fields of type Class
+            class_fields = JavaFilter(node_class='field', node_modifiers=['private'],
+                node_type=s_class.name).get_nodes(s_class)
+            if not class_fields:
+                continue
+            # Get methods of type Class
+            class_methods = JavaFilter(node_class='method',
+                node_return_type=s_class.name).get_nodes(s_class)
+            if not class_methods:
+                continue
+            # Get private constructors
+            private_constructors = JavaFilter(node_class='constructor',
+                node_modifiers=['private']).get_nodes(s_class)
+            if not private_constructors:
+                continue
+            singletons.append(s_class.name)
+    return singletons
+\end{minted}
+\caption{A Python function to return all potential implementations of a Singleton pattern within a Java project}
+\label{lst:singletonFilter}
+\end{listing}
+
+It is possible to represent other structural patterns with these filters, but the use of per-class ASTs causes issues in producing a solution generic enough for the objective of adaptable specifications.
+
+\section{Specification Issues}
+Within \textbf{\emph{javalang}}, per-class ASTs will all have a ClassDeclaration as their root, but little to no relation to other classes beyond a class or method name. As a result, should a pattern extend beyond one single class, as almost all do, checking for potential instances becomes much more difficult, as each check must return all potential nodes within every file. This means that pattern checks become tedious to write, difficult to understand, and expensive to compute. However, if a global program representation could be computed from these ASTs, detecting patterns would become significantly simpler.

@@ -40,3 +40,7 @@ python -m unittest discover -s test
 ## Building the report
 
 `doc/report/build_report.sh` (or `.bat`) builds the report PDF. It needs `latexmk`, Pygments and Inkscape. With MiKTeX, enable automatic installation of missing packages first.
+
+## Licence
+
+The code is released under the [MIT licence](LICENSE). The report and slides in `doc/` are released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), except for the Imperial logo, which belongs to Imperial College London.

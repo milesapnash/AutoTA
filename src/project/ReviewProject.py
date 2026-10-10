@@ -1,11 +1,13 @@
 import os
 
 from src.entity_relations.JavaGraph import build_java_graph
-from src.entity_relations.PythonGraph import build_python_graph
-from src.project.ReviewFile import ReviewFile
+from src.project.ReviewFile import ReviewFile, LANGUAGES
 from src.project.utils import create_feedback_pdf, gpt_api_request
 from src.rules.EncapsulationRule import EncapsulationRule
 from src.rules.IdentifierRule import IdentifierRule
+
+# To support another language, register its ER graph builder here
+GRAPH_BUILDERS = {'java': build_java_graph}
 
 
 class ReviewProject:
@@ -16,12 +18,12 @@ class ReviewProject:
         self.files = []
         self.summary = None
 
-        lang_ext_dict = {'java': 'java', 'python': 'py'}
-        file_extension = lang_ext_dict[spec.language]
+        file_extension = next(ext for ext, (language, _) in LANGUAGES.items()
+                              if language == spec.language)
 
         for root, _, dir_files in os.walk(directory):
             for file_name in dir_files:
-                if file_name.endswith(f'.{file_extension}'):
+                if file_name.endswith(file_extension):
                     self.files.append(
                         ReviewFile(root, os.path.relpath(root, directory),
                                    file_name))
@@ -83,10 +85,7 @@ class ReviewProject:
         return pattern_feedback
 
     def build_er_graph(self, files):
-        if self.spec.language == 'java':
-            return build_java_graph(files)
-        elif self.spec.language == 'python':
-            return build_python_graph(files)
+        return GRAPH_BUILDERS[self.spec.language](files)
 
     def print_feedback(self):
         if not self.feedback:

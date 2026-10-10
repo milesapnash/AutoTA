@@ -12,7 +12,7 @@ PATTERN_REPOS = os.path.join(os.path.dirname(__file__), 'pattern_repos')
 
 def detect(repo, pattern, language='java'):
     """Runs pattern detection on a fixture repo and returns the feedback."""
-    spec = Spec('pattern test', language, patterns=[DesignPattern(pattern)])
+    spec = Spec('pattern test', patterns=[DesignPattern(pattern)])
     project = ReviewProject(os.path.join(PATTERN_REPOS, language, repo),
                             spec)
     return '\n'.join(project.feedback)

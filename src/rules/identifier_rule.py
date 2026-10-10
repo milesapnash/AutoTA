@@ -11,6 +11,9 @@ class IdentifierRule(Rule):
         ast = self.file_filter(file)
         if ast is None or self.node_filter is None:
             return []
+        # A filter only applies to files in the language it was written for
+        if file.language != self.node_filter.language:
+            return []
 
         feedback = []
         for node in self.node_filter.get_nodes(ast):

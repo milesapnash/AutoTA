@@ -1,6 +1,7 @@
 import os
+from collections import Counter
 
-from src.languages import LANGUAGES
+from src.languages import LANGUAGES, language_of
 from src.project.review_file import ReviewFile
 from src.project.utils import create_feedback_pdf, gpt_api_request
 from src.rules.encapsulation_rule import EncapsulationRule
@@ -15,14 +16,24 @@ class ReviewProject:
         self.files = []
         self.summary = None
 
-        file_extension = LANGUAGES[spec.language].extension
+        source_files = [(root, file_name)
+                        for root, _, dir_files in os.walk(directory)
+                        for file_name in dir_files
+                        if language_of(file_name) is not None]
+        if not source_files:
+            raise ValueError(
+                f'No supported source files found in {directory}')
 
-        for root, _, dir_files in os.walk(directory):
-            for file_name in dir_files:
-                if file_name.endswith(file_extension):
-                    self.files.append(
-                        ReviewFile(root, os.path.relpath(root, directory),
-                                   file_name))
+        # The project's language is the one most of its files are written in
+        self.language = Counter(
+            language_of(file_name) for _, file_name in source_files
+        ).most_common(1)[0][0]
+
+        for root, file_name in source_files:
+            if language_of(file_name) == self.language:
+                self.files.append(
+                    ReviewFile(root, os.path.relpath(root, directory),
+                               file_name))
 
         if er_scope is None:
             self.er_graph = self.build_er_graph(self.files)
@@ -79,12 +90,12 @@ class ReviewProject:
         for pattern in patterns:
             pattern_feedback.append('-' + pattern.pattern + '\n' +
                                     pattern.find_potential_isomorphisms(
-                                        self.er_graph, self.spec.language))
+                                        self.er_graph, self.language))
 
         return pattern_feedback
 
     def build_er_graph(self, files):
-        return LANGUAGES[self.spec.language].build_graph(files)
+        return LANGUAGES[self.language].build_graph(files)
 
     def print_feedback(self):
         if not self.feedback:

@@ -1,0 +1,8 @@
+# Normalise line endings, whatever the platform or git settings
+* text=auto
+
+# Shell scripts must keep LF to run, batch files CRLF
+*.sh text eol=lf
+*.bat text eol=crlf
+
+*.pdf binary

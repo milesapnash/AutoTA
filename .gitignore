@@ -9,7 +9,7 @@ venv/
 .env
 
 # Generated feedback
-*Task Feedback.pdf
+feedback.pdf
 
 # IDEs
 .idea/

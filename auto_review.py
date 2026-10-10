@@ -22,6 +22,9 @@ def parse_args():
                              'graph (default: main)')
     parser.add_argument('--pdf', action='store_true',
                         help='write the feedback to a PDF')
+    parser.add_argument('--output', default='feedback.pdf',
+                        help='path of the PDF written by --pdf (default: '
+                             'feedback.pdf in the current directory)')
     return parser.parse_args()
 
 
@@ -39,7 +42,7 @@ def main():
         project.get_llm_summary()
 
     if args.pdf:
-        project.build_pdf()
+        project.build_pdf(args.output)
 
 
 if __name__ == '__main__':

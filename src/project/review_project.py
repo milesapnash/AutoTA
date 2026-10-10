@@ -100,6 +100,6 @@ class ReviewProject:
     def get_llm_summary(self):
         self.summary = gpt_api_request(self.files, self.feedback)
 
-    def build_pdf(self):
+    def build_pdf(self, output_path):
         create_feedback_pdf(self.files, self.spec.task, self.summary,
-                            self.directory)
+                            output_path)

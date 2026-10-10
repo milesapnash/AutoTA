@@ -121,8 +121,7 @@ class DesignPattern:
         self.entity_dict, self.relation_dict = pattern_library(pattern)
 
         if self.entity_dict is None:
-            # Compose pattern
-            pass
+            raise ValueError(f'Unknown design pattern: {pattern}')
 
     def relations_contained(self, pattern_relations, graph_relations):
         if pattern_relations is None:

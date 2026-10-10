@@ -5,7 +5,7 @@ from src.rules.encapsulation_rule import EncapsulationRule
 from src.rules.identifier_rule import IdentifierRule
 
 
-def build_spec(spec_file):
+def build_spec():
     task = 'Cryptography Task'
     rules = [EncapsulationRule(scope=('dir', 'main')),
              # Java test names should not start with 'test'

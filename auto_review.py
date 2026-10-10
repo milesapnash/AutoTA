@@ -15,9 +15,6 @@ def parse_args():
                         default='test/example_task_java/',
                         help='project directory to review (default: the '
                              'bundled Java example task)')
-    parser.add_argument('spec', nargs='?', default='',
-                        help='specification file (currently unused, the '
-                             'specification is built in spec.py)')
     parser.add_argument('--scope', default='main',
                         help='subdirectory used to build the entity-relation '
                              'graph (default: main)')
@@ -33,7 +30,7 @@ def main():
     load_dotenv()
     args = parse_args()
 
-    spec = build_spec(args.spec)
+    spec = build_spec()
     print('-Specification Built Successfully')
     project = ReviewProject(args.directory, spec, er_scope=args.scope)
     print('-Project Built Successfully')

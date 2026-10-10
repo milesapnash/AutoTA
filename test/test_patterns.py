@@ -160,6 +160,12 @@ class TestPythonPatterns(PatternTestCase):
             detect('StrategyIncomplete', 'strategy', 'python'), 'strategy')
 
 
+class TestDesignPattern(unittest.TestCase):
+    def test_unknown_pattern_is_rejected(self):
+        with self.assertRaises(ValueError):
+            DesignPattern('notAPattern')
+
+
 class TestErGraph(unittest.TestCase):
     def test_file_without_package_declaration_builds_graph(self):
         code = """

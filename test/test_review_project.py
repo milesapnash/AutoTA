@@ -50,7 +50,7 @@ class TestReviewProject(unittest.TestCase):
 
 class TestExampleTasks(unittest.TestCase):
     def review(self, task):
-        project = ReviewProject(os.path.join(TEST_DIR, task), build_spec(''),
+        project = ReviewProject(os.path.join(TEST_DIR, task), build_spec(),
                                 er_scope='main')
         return project.feedback
 

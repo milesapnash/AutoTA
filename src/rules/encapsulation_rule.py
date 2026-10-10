@@ -4,11 +4,6 @@ from src.rules.rule import Rule
 
 # Checks that all classes within scope are Encapsulated
 class EncapsulationRule(Rule):
-    def __init__(self, scope='project', getters=False, setters=False):
-        super().__init__(scope)
-        self._getters = getters
-        self._setters = setters
-
     def apply(self, file):
         ast = self.file_filter(file)
         if ast is None:
@@ -27,12 +22,6 @@ class EncapsulationRule(Rule):
                     (node_filter.line_of(field),
                      f'In class {node_filter.name_of(ast_class)}, the '
                      f'{node_filter.name_of(field)} field is not private'))
-
-            if self._getters:
-                pass
-
-            if self._setters:
-                pass
 
         return feedback
 

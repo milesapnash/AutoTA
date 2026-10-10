@@ -1,16 +1,16 @@
+import os
+
 from openai import OpenAI
 
 from src.project.feedback_pdf import FeedbackPDF
 
+DEFAULT_MODEL = 'gpt-4o-mini'
 
-def gpt_api_request(project_files, project_feedback, api_key=None,
-                    api_key_file=None):
-    if api_key is None:
-        if api_key_file is None:
-            return "No API key provided"
-        else:
-            with open(api_key_file, "r") as f:
-                api_key = f.read()
+
+def gpt_api_request(project_files, project_feedback):
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        return "No API key provided"
 
     feedback = "".join(project_feedback)
     contents = "".join(
@@ -18,7 +18,7 @@ def gpt_api_request(project_files, project_feedback, api_key=None,
     try:
         client = OpenAI(api_key=api_key)
         completion = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=os.getenv('OPENAI_MODEL', DEFAULT_MODEL),
             messages=[
                 {"role": "system",
                  "content": "You are a programming teaching assistant. Your "
@@ -39,6 +39,7 @@ def gpt_api_request(project_files, project_feedback, api_key=None,
         return completion.choices[0].message.content
 
     except Exception as e:
+        print(f'-GPT API Request Failed: {e}')
         return None
 
 

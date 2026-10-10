@@ -94,8 +94,8 @@ class ReviewProject:
             for feedback in self.feedback:
                 print(feedback)
 
-    def get_llm_summary(self, api_key):
-        self.summary = gpt_api_request(self.files, self.feedback, api_key)
+    def get_llm_summary(self):
+        self.summary = gpt_api_request(self.files, self.feedback)
 
     def build_pdf(self):
         create_feedback_pdf(self.files, self.spec.task, self.summary,

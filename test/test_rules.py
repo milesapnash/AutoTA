@@ -1,9 +1,9 @@
 import unittest
 
-from src.filters.JavaFilter import JavaFilter
-from src.project.ReviewFile import ReviewFile
-from src.rules.EncapsulationRule import EncapsulationRule
-from src.rules.IdentifierRule import IdentifierRule
+from src.filters.java_filter import JavaFilter
+from src.project.review_file import ReviewFile
+from src.rules.encapsulation_rule import EncapsulationRule
+from src.rules.identifier_rule import IdentifierRule
 
 
 class TestRules(unittest.TestCase):

@@ -1,7 +1,7 @@
 import sys
 
-from src.project.ReviewProject import ReviewProject
-from src.project.Spec import build_spec
+from src.project.review_project import ReviewProject
+from src.project.spec import build_spec
 
 if __name__ == "__main__":
     repo_dir, spec_file, api_key = None, None, None

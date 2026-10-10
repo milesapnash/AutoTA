@@ -1,5 +1,5 @@
-from src.filters.JavaFilter import JavaFilter
-from src.rules.Rule import Rule
+from src.filters.java_filter import JavaFilter
+from src.rules.rule import Rule
 
 
 # Checks that all classes within scope are Encapsulated

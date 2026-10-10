@@ -1,7 +1,7 @@
-from src.entity_relations.DesignPattern import DesignPattern
-from src.filters.JavaFilter import JavaFilter
-from src.rules.EncapsulationRule import EncapsulationRule
-from src.rules.IdentifierRule import IdentifierRule
+from src.entity_relations.design_pattern import DesignPattern
+from src.filters.java_filter import JavaFilter
+from src.rules.encapsulation_rule import EncapsulationRule
+from src.rules.identifier_rule import IdentifierRule
 
 
 def build_spec(spec_file):

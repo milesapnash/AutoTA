@@ -1,6 +1,6 @@
 from openai import OpenAI
 
-from src.project.FeedbackPDF import FeedbackPDF
+from src.project.feedback_pdf import FeedbackPDF
 
 
 def gpt_api_request(project_files, project_feedback, api_key=None,

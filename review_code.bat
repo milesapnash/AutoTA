@@ -34,9 +34,9 @@ goto loop
 :endloop
 
 REM Running the Python script with arguments
-python autoReview.py %args%
+python auto_review.py %args%
 if %errorlevel% neq 0 (
-    echo Failed to run autoReview.py.
+    echo Failed to run auto_review.py.
     pause
     exit /b 1
 )

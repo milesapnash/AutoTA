@@ -1,5 +1,5 @@
-from src.filters.Filter import get_node_name
-from src.rules.Rule import Rule
+from src.filters.base_filter import get_node_name
+from src.rules.rule import Rule
 
 
 # Checks that all nodes within scope follow naming convention

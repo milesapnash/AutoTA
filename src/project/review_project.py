@@ -1,10 +1,10 @@
 import os
 
-from src.entity_relations.JavaGraph import build_java_graph
-from src.project.ReviewFile import ReviewFile, LANGUAGES
+from src.entity_relations.java_graph import build_java_graph
+from src.project.review_file import ReviewFile, LANGUAGES
 from src.project.utils import create_feedback_pdf, gpt_api_request
-from src.rules.EncapsulationRule import EncapsulationRule
-from src.rules.IdentifierRule import IdentifierRule
+from src.rules.encapsulation_rule import EncapsulationRule
+from src.rules.identifier_rule import IdentifierRule
 
 # To support another language, register its ER graph builder here
 GRAPH_BUILDERS = {'java': build_java_graph}

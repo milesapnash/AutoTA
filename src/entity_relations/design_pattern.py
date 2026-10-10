@@ -1,4 +1,4 @@
-from src.entity_relations.ERClasses import *
+from src.entity_relations.er_classes import *
 
 
 def not_none_check(a, b):

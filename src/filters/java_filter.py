@@ -2,7 +2,7 @@ import re
 
 from javalang import tree
 
-from src.filters.Filter import Filter
+from src.filters.base_filter import Filter
 
 
 class JavaFilter(Filter):

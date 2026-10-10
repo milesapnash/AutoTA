@@ -98,7 +98,7 @@ def first_pass(file, first_pass_dict):
                                      method_entity)
                     file_relations.append(Has(interface_entity, method_entity))
 
-        return file_entities, file_relations
+    return file_entities, file_relations
 
 
 def build_java_graph(files, display=False):

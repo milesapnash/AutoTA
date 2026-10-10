@@ -175,6 +175,33 @@ class TestErGraph(unittest.TestCase):
         names = {entity.info['name'] for entity in graph['entities']}
         self.assertEqual(names, {'Example', 'field', 'method'})
 
+    def test_file_with_several_types_includes_all_of_them(self):
+        code = """
+        interface Shape {
+            double area();
+        }
+
+        class Square implements Shape {
+            public double area() { return 1; }
+        }
+        """
+        file = ReviewFile('./', '', 'Shapes.java', contents=code)
+
+        graph = build_java_graph([file])
+
+        types = {(entity.type, entity.info['name'])
+                 for entity in graph['entities']}
+        self.assertEqual(types, {('interface', 'Shape'),
+                                 ('abstractMethod', 'area'),
+                                 ('class', 'Square'), ('method', 'area')})
+
+    def test_file_without_types_builds_empty_graph(self):
+        file = ReviewFile('./', '', 'Empty.java', contents='')
+
+        graph = build_java_graph([file])
+
+        self.assertEqual(graph['entities'], [])
+
 
 if __name__ == '__main__':
     unittest.main()

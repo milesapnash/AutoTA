@@ -11,18 +11,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
       - name: Make shell script executable
-        run: chmod +x reviewCode.sh
+        run: chmod +x review_code.sh
 
-      - name: Run
-        run: ./reviewCode.sh test/sed_repos/java/SED1 spec_file
+      - name: Run on the Java example
+        run: ./review_code.sh test/example_task_java
+
+      - name: Run on the Python example
+        run: ./review_code.sh test/example_task_python

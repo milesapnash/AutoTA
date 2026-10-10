@@ -1,10 +1,10 @@
 import unittest
 
-from src.filters.JavaFilter import JavaFilter
-from src.filters.PythonFilter import PythonFilter
-from src.project.ReviewFile import ReviewFile
-from src.rules.EncapsulationRule import EncapsulationRule
-from src.rules.IdentifierRule import IdentifierRule
+from src.filters.java_filter import JavaFilter
+from src.filters.python_filter import PythonFilter
+from src.project.review_file import ReviewFile
+from src.rules.encapsulation_rule import EncapsulationRule
+from src.rules.identifier_rule import IdentifierRule
 
 
 class TestRules(unittest.TestCase):
@@ -69,33 +69,45 @@ class TestRules(unittest.TestCase):
         self.assertEqual(len(results), 1)
 
     def test_positive_python_encapsulation_rule(self):
-        code = """class Example:
-            self._encapsulated = "test"
-            def get_encapsulated(self):
-                return self.encapsulated
-        """
+        code = """
+class Example:
+    _count = 0
+
+    def __init__(self):
+        self._encapsulated = "test"
+
+    def get_encapsulated(self):
+        return self._encapsulated
+"""
         file = ReviewFile('./', "", 'example.py', contents=code)
         results = EncapsulationRule().apply(file)
 
         self.assertEqual(results, [])
 
     def test_negative_python_encapsulation_rule(self):
-        code = """class Example:
-            self.encapsulated = "test"
-            def get_encapsulated(self):
-                return self.encapsulated
-        """
+        code = """
+class Example:
+    count = 0
+
+    def __init__(self):
+        self.encapsulated = "test"
+
+    def get_encapsulated(self):
+        return self.encapsulated
+"""
         file = ReviewFile('./', "", 'example.py', contents=code)
         results = EncapsulationRule().apply(file)
 
-        self.assertEqual(1, len(results))
+        self.assertEqual(results, [
+            (3, 'In class Example, the count field is not private'),
+            (6, 'In class Example, the encapsulated field is not private')])
 
     def test_positive_python_identifier_rule(self):
-        code = """class Example:
-            self.field = "something"
-            def get_encapsulated(self):
-                return self.encapsulated
-        """
+        code = """
+class Example:
+    def get_encapsulated(self):
+        return self._encapsulated
+"""
         file = ReviewFile('./', "", 'example.py', contents=code)
         results = IdentifierRule(
             node_filter=PythonFilter(node_class='method',
@@ -104,17 +116,18 @@ class TestRules(unittest.TestCase):
         self.assertEqual(results, [])
 
     def test_negative_python_identifier_rule(self):
-        code = """class Example:
-            self.field = "something"
-            def getEncapsulated(self):
-                return self.encapsulated
-        """
+        code = """
+class Example:
+    def getEncapsulated(self):
+        return self._encapsulated
+"""
         file = ReviewFile('./', "", 'example.py', contents=code)
         results = IdentifierRule(
             node_filter=PythonFilter(node_class='method',
                                      node_name=r'.*[A-Z].*')).apply(file)
 
         self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][0], 3)
 
 
 if __name__ == '__main__':

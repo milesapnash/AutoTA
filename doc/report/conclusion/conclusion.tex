@@ -1,0 +1,18 @@
+\ourchapter{Conclusion}
+\label{chapter:conclusion}
+\section{Reflection}
+
+The evaluation demonstrates that \emph{AutoTA} effectively detects structural patterns and provides actionable feedback when pattern elements are missing. The tool supports the composition and detection of a wide range of structural patterns, some of which are included in a library, and produces readable summaries through prompt engineering. 
+
+However, like many static code analysis tools, \emph{AutoTA} encounters challenges in flexibility, especially due to limitations of AST libraries and the variation in design pattern implementations across languages.
+
+\section{Future Work}
+Given the tool's strengths, there are several potential avenues for extension:
+\begin{itemize}
+    \item \textbf{Extending to Other Programming Languages} - One immediate extension to the program could involve enhancing its capability to support additional object-oriented programming (OOP) languages such as C\# and Kotlin. The program has been designed with this flexibility in mind; as long as an Entity-Relation Graph can be constructed to represent a program, it can be utilised effectively. However, as referenced previously, the tool having been built with Java originally in mind has caused some issues with detecting patterns in a uniform manner, raising the point that perhaps each language should have its own design pattern implementations provided.
+    \item \textbf{Facilitate Building Specifications} - Whilst simple rules like checking for encapsulation and design patterns are composable, this requires some knowledge of how the program works. Task specifications are traditionally written in plain English, so perhaps some form of model could be designed to take the standard marking criteria for a task and transform it into one that can be used to query submissions.
+    \item \textbf{Incorporating Version Control in Analysis} - As mentioned previously, industry code reviews are change based. That is, reviewers will compare the difference between two versions of some code to determine the effect any proposed update would have. A similar idea could be incorporated within the tool - students will make multiple commits throughout their work on an exercise, which can each be analysed to develop an idea of how the code has progressed. This could be particularly effective for teaching areas like \textbf{Test Driven Development} that are reliant on effective version control.
+\end{itemize}
+
+
+ 

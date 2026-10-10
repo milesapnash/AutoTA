@@ -1,0 +1,83 @@
+\ourchapter{Related Work}
+\label{chapter:relatedwork}
+
+This chapter outlines techniques and tools that are used to review code and produce feedback, along with particularly useful aspects that should be considered for our tool.
+
+\section{Manual Code Inspection}
+
+As stated in \cref{sec: Motivation}, the traditional definition of code review, where programmers manually analyse code produced by another is effective, but it brings with it a requirement of time and effort, along with inevitable fatigue and limitations in scalability. Additionally, human inspectors have the potential for bias towards a code's intended purpose, as well as capability for errors.
+
+Some commonly utilised methods of manually reviewing code are:
+
+\subsection{Fagan Inspection}
+The first well-documented code review process was invented in 1972 by Michael Fagan, a software designer at IBM. The `inspection' he refers to is a method for detecting defects in documents and code in early development, where the cost to fix a defect can be up to 100 times less than in the maintenance phase~\cite{FaganInspection}. The basic model of an inspection is:
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=15.5cm]{relatedwork/FaganInspection.svg}
+    \caption{The Fagan Inspection, as per \cite{FaganProcess}}
+    \label{fig:fagan}
+\end{figure}
+
+This rigorous methodology can improve software quality by a reduction in defects of up to 90\%~\cite{FaganStudy}. However, as the process is perhaps too formal and time-consuming for fast-paced modern development it has fallen out of use, with some considering it obsolete~\cite{FaganStudy}.
+
+\subsection{Change-Based Code Review}
+With the rise in agile and open development, code reviews have become more lightweight, frequent and asynchronous~\cite{ChangeBasedCodeReview}. Rather than a structured meeting, when a ``unit of work'' is ``ready to review'', all changes made from the previous version of code are considered review candidates, which can then be assessed by another programmer~\cite{ChangeBasedCodeReview}. This will commonly be achieved through some form of \textbf{version control} like Git, ensuring only satisfactory branches are merged to prevent breaking builds. These less formal reviews have been effective in companies like Microsoft~\cite{MicrosoftCodeReview}, providing quicker feedback on code issues. However, there remains the need for an experienced human to analyse prospective changes.
+
+\subsection{Pair Programming}
+Pair programming is a technique where one programmer writes code, acting as the `driver', whilst another reviews the code as it is written, being the `navigator'. This not only serves to produce high-quality code, but also enables knowledge sharing and fosters improved collaboration. As a result, pair programming is often used in education as well, most frequently in introductory programming courses where there is evidence that it leads to increased student success and improved group work~\cite{PairProgrammingInEducation}.
+
+However, the issue of requiring a time investment is most pronounced here. While it can be beneficial for achieving correctness with complex tasks, pair programming comes with the price of considerable effort~\cite{PairProgrammingProblems}. Furthermore, the efficacy of this approach varies greatly between individuals, depending especially on the capability of the navigator.
+
+\section{Static Analysis Tools}
+
+As an automated approach, static analysis scales more naturally than manual techniques and can be applied with minimal knowledge of a particular codebase. These tools are also considerably more affordable than expensive programmer salaries. However, the quality of feedback and range of possible problems detected are more limited, as these tools can only search for a fixed set of patterns within code~\cite{StaticAnalysisTools}. Consequently, they are only as useful as they are well-defined.
+
+There are many static analysis tools available, including these open-source, Java-focused examples:
+
+\begin{itemize}
+    \item \textbf{FindBugs} was one of the first static analysis tools with the goal of bug detection. This is accomplished through the notion of a bug pattern: a code idiom that is likely to be an error \cite{FindingBugsIsEasy}. The program uses a range of bug pattern detectors to detect common issues, such as the dereferencing of a null pointer, using a visitor pattern over class files and bytecode alike~\cite{UsingFindBugs}. FindBugs was abandoned in 2015, and has since been succeeded by \textbf{SpotBugs}*. 
+
+    \footnotesize
+    *The GitHub repository for SpotBugs is accessible at \url{https://github.com/spotbugs/spotbugs}
+    \normalsize 
+ 
+    \item \textbf{Error Prone}* is another fault-detection tool developed by Google for in-house use. Whilst inspired by FindBugs' style of static checks, Error Prone
+    differs in that it piggybacks existing compiler computations by augmenting the OpenJDK javac compiler's type analysis~\cite{ErrorProne}. This allows the tool to perform a compile time check, whilst also reducing the performance impact of further analyses.
+
+    \footnotesize
+     *The GitHub repository for Error Prone is accessible at \url{https://github.com/google/error-prone}
+    \normalsize
+
+    \item \textbf{Checkstyle}* uses static analysis of ASTs to check if Java code contains style and formatting issues, ensuring it adheres to a given standard. These standards are highly configurable, allowing users to easily write their own `checks' with minimal Java, along with a library of standard, pre-built checks. This configuration extends to the detail of feedback produced, which would lend itself well to allowing for configurable exercise specifications for an automated teaching assistant.
+
+    \footnotesize{*The GitHub repository for Checkstyle is accessible at \url{https://github.com/checkstyle/checkstyle}}
+    \normalsize 
+
+    \item \textbf{PMD}*, or Programming Mistake Detector, is a more general purpose source code analyser. Whilst it originally targeted solely Java, the program has been extended to over 18 languages, with 400 built-in rules that can be extended by users. Emulating this flexibility in a tool focused on detecting structural patterns would greatly extend the potential use cases.
+    
+    \footnotesize
+    *The GitHub repository for PMD is accessible at \url{https://github.com/pmd/pmd}
+    \normalsize
+\end{itemize}
+
+\section{Machine Learning Code Analysis}
+
+Using machine learning to review student work is an attractive prospect, as general purpose models can be reused to provide useful feedback across a range of exercises. There is even the possibility of utilising models to ``propose code changes based on comments''~\cite{ResolveCommentsWithML}. However, these models require a considerable amount of data to train on, the sourcing of which is a more difficult task. 
+
+There are already some tools that apply ML techniques to review text and code:
+
+\begin{itemize}
+    \item \textbf{Athena}* is EdTech software, designed in the Technical University of Munich's Software Engineering department, that suggests feedback for text-based exercises. Currently limited to plain text, the software runs in conjunction with their Artemis platform, with the goal of scalable feedback delivery. Athena utilises a language model that ``builds an intermediate representation of the text'' before ``clustering identifies groups of similar segments''~\cite{Athena}. This then allows them to compare work to a repository of assessment knowledge obtained from previous work.
+
+    \footnotesize
+    *The GitHub repository for Athena is accessible at \url{https://github.com/ls1intum/Athena-CoFee}
+    \normalsize 
+ 
+    \item \textbf{Lintrule}* uses an LLM to review code, acting as a complete substitute for a human reviewer. The LLM is provided with rules to follow in natural language by the user, which it then uses to analyse programs in change-based reviews, triggered by requests to merge code into a branch. As discussed in \cref{section:LLMs}, these models are not completely accurate, and rely heavily on the specificity of rules provided by users. Despite this, the ability to provide specifications in natural language and review code of many different languages, with no necessity for compilation, has informed the project's initial exploration of using LLMs for generating feedback in \cref{chapter:part1}.
+    
+    \footnotesize
+    *The GitHub repository for Lintrule is accessible at \url{https://github.com/lintrule/lintrule}
+    \normalsize
+
+\end{itemize}

@@ -1,0 +1,176 @@
+
+\ourchapter{Abstracting Design Patterns}
+\label{chapter:part3}
+This final chapter of the \emph{AutoTA} implementation details the representation of design patterns as graphs, which can then be utilised in graph mining of a global entity-relation graph.
+
+\section{Design Patterns as Graphs}
+Within design patterns, we have the notion of entities and relations, just as in graphs we have the notion of nodes and edges. In particular, we have the entities:
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|c|}
+        \hline
+        \textbf{Entity} & \textbf{Label} \\
+        \hline
+        Class & C \\
+        \hline
+        Abstract Class & AC \\
+        \hline
+        Interface & I \\
+        \hline
+        Constructor & CON \\
+        \hline
+        Field & F \\
+        \hline
+        Method & M \\
+        \hline
+        Abstract Method & AM \\
+        \hline
+    \end{tabular}
+    \caption{Table of Entities and their shorthand graph label}
+    \label{tab:nodes}
+\end{table}
+
+And we have the corresponding relations between these entities:
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|c|}
+        \hline
+        \textbf{Relation} & \textbf{Label} \\
+        \hline
+        Is Composed Of & Has \\
+        \hline
+        Extends Class/Interface & Extends \\
+        \hline
+        Implements Interface & Implements \\
+        \hline
+        Overrides Method & Overrides \\
+        \hline
+        Has The Type Of & HasType \\
+        \hline
+        Has The Return Type Of & ReturnType \\
+        \hline
+        Invokes Method & Invokes \\
+        \hline
+        Has Parameter Of Type & Parameter \\
+        \hline
+        Instantiates Class & Instantiates \\
+        \hline
+    \end{tabular}
+    \caption{Table of Relations and their shorthand representation}
+    \label{tab:edges}
+\end{table}
+
+With a combination of these, we can represent any of the 23 Gang of Four Design Patterns~\cite{GangOfFour} as an \textbf{Entity-Relation Graph}. For example, in the case of the Singleton Pattern we have:
+
+\begin{itemize}
+    \item A class, C, that has:
+    \begin{itemize}
+    \item A private constructor, CON
+    \item A private field, F, that is of the type C
+    \item A method, M, that has return type C
+    \end{itemize}
+\end{itemize}
+
+If we represent the above entities and relations graphically, we have \cref{fig:Singleton Pattern}:
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=7cm]{project/figures/SingletonGraph.svg}
+    \caption{The Singleton Pattern as a graph}
+    \label{fig:Singleton Pattern}
+\end{figure}
+
+Similarly, we can represent more complex patterns, such as the Template Method Pattern, as an ER Graph. This is an example of a pattern that spans multiple classes, solving \cref{chapter:part2}'s issue, as shown in \cref{fig:TemplateMethodPatternGraph}:
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=10cm]{project/figures/TemplateMethodGraph.svg}
+    \caption{The Template Method Pattern as a graph}
+    \label{fig:TemplateMethodPatternGraph}
+\end{figure}
+
+These graphs can be represented as a set of Entity objects and a set of Relation objects as per \cref{lst:Entities&Relations}:
+
+\begin{listing}[H]
+\begin{minted}[linenos, breaklines]{python}
+class Entity:
+    def __init__(self, entity_type=None, name=None, entity_info=None, ast_node=None):
+        self.type = entity_type
+        self.name = name
+        self.info = entity_info
+        self.node = ast_node
+
+class Relation:
+    def __init__(self, entity_from, entity_to, relation_type):
+        self.entity_from = entity_from
+        self.entity_to = entity_to
+        self.relation_type = relation_type
+\end{minted}
+\caption{Python classes representing Entities (Nodes) and Relations (Edges) within a graph}
+\label{lst:Entities&Relations}
+\end{listing}
+
+\section{Graph Program Representation}
+
+To utilise these pattern graphs, a similar Entity-Relation graph representation must be built for programs.
+
+\subsection{First Pass}
+The \textbf{\emph{javalang}} per-file ASTs are traversed to create Entity objects when a node from the set defined in \cref{tab:nodes} is encountered. After this, a Composition Relation can be added for the \emph{members} of the node. The result of performing this first pass on the CaesarCipher class (defined in \cref{lst:sample-caesarcipher}) would be:
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=7cm]{project/figures/CCGraph.svg}
+    \caption{The CaesarCipher class as a Graph}
+    \label{fig:CaesarCipherGraph}
+\end{figure}
+
+Node data such as modifiers, annotations, and identifiers are stored in the entity\_info parameter of the Entity class, to be used in the event a filter is required. The graph-building process is repeated for all files within a set scope to generate a set of local Entity-Relation Graphs, as shown in \cref{fig:ProgramGraph}:
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=15.5cm]{project/figures/FilesGraph.svg}
+    \caption{Each file of the student submission with their corresponding ER Graph}
+    \label{fig:ProgramGraph}
+\end{figure}
+
+\subsection{Second Pass}
+
+Now that a complete set of program nodes has been generated, the other relations can be added to the graph by iterating through the global set of entities, which contain a reference to the AST node used to generate each one. For every entity, depending on the type, a number of checks are performed to determine which, if any, relations are added. This second pass of the graph is needed to ensure that the correct scope is applied when building these relations, to prevent an erroneous relation that could come as a result of two methods sharing the same name, for example.
+
+Following this second pass, the final ER Graph for the example submission would look like \cref{fig:FullProgramGraph}:
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=15.5cm]{project/figures/ProgGraph.svg}
+    \caption{The global ER Graph for the ExampleSubmission}
+    \label{fig:FullProgramGraph}
+\end{figure}
+
+
+\section{Matching Pattern Graphs}
+
+Given an ER Graph representing a program and a graph representing a design pattern, we can search for instances of the design pattern by finding what is almost a subgraph isomorphism. That is, we don't necessarily need nodes to be completely equal, just that the nodes within the program graph contain \textbf{at least} the specified attributes of those in the Design Pattern.
+
+The naive implementation of this detection would find all possible instances of each node within a pattern, before eliminating those without the correct relations between the other entities. We can optimise this process by immediately eliminating nodes that have a smaller degree than that of the corresponding pattern node, as it means that the node cannot have all the relations required to be part of a pattern implementation.
+
+As an example, if we use the Template Method Graph in \cref{fig:TemplateMethodPatternGraph} to attempt to find implementations of the Template Method Pattern within the program graph in \cref{fig:FullProgramGraph}, we will see that such an instance is detected, in orange (being one of four in the program graph):
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=15.5cm]{project/figures/TemplateMethodOnProg.svg}
+    \caption{The Template Method Pattern Graph matched on a subgraph of the Program Graph}
+    \label{fig:TemplateMethodOnGraph}
+\end{figure}
+
+These nodes would then be output together as a potential implementation of the above pattern, with similar negative feedback in the absence of any such subgraphs. In the case that only a single entity is initially missing, a perfect substitute will be placed in its stead. If the remainder of the pattern is detected, then we have that this entity is the sole missing component, which can be reported in feedback to provide a direct action point for students.
+
+\section{Building Specifications}
+
+To facilitate quick specification generation, design pattern names can be used to query a library containing pre-made examples of these graphs. These can be used directly or edited with stricter rules, such as entities needing to have a certain name. Additionally, the graph representation of these patterns could be produced in a graphical front-end to more easily generate custom patterns.
+
+As with filters, these ER Graphs can be extended to any OOP language that shares, or at least approximates, the specified entities and relations. As a result, using the Python \textbf{\emph{ast}} library would allow for the detection of these patterns within Python code. However, performance varies heavily, due to the originally intended language for these patterns being Java.
+
+\section{LLM Summary}
+Finally, we use the output of both filter-composed rules and graph mining design pattern matchers as feedback on a given submission. This is passed to the ChatGPT API once more, this time using \emph{gpt-4}, which allows the use of a specialised `code interpreter' model. The LLM is asked to provide a summary on the rules breached (or not) and design patterns found, nearly found, or that are completely absent. This produces an effective, concise summary that would allow a human teaching assistant to more quickly mark submissions, as per the objective.

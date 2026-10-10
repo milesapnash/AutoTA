@@ -29,4 +29,4 @@ class Rule:
         return file.ast
 
     def apply(self, review_file):
-        return NotImplementedError
+        raise NotImplementedError

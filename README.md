@@ -25,7 +25,7 @@ The LLM summary is optional. To use it, copy `.env.example` to `.env` and set `O
 python auto_review.py [directory] [--scope SCOPE] [--pdf] [--output PATH]
 ```
 
-With no arguments it reviews `test/example_task`. Feedback is printed, and `--pdf` also writes it to a PDF (`feedback.pdf` by default). `--scope` is the subdirectory the graph is built from (`main` by default).
+With no arguments it reviews `test/example_task_java`. Feedback is printed, and `--pdf` also writes it to a PDF (`feedback.pdf` by default). `--scope` is the subdirectory the graph is built from (`main` by default).
 
 The rules and patterns that are checked are set in `src/project/spec.py`.
 

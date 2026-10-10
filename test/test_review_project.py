@@ -5,10 +5,11 @@ import unittest
 from src.filters.java_filter import JavaFilter
 from src.project.review_file import ReviewFile
 from src.project.review_project import ReviewProject
-from src.project.spec import Spec
+from src.project.spec import Spec, build_spec
 from src.rules.identifier_rule import IdentifierRule
 
-PATTERN_REPOS = os.path.join(os.path.dirname(__file__), 'pattern_repos')
+TEST_DIR = os.path.dirname(__file__)
+PATTERN_REPOS = os.path.join(TEST_DIR, 'pattern_repos')
 
 
 class TestReviewProject(unittest.TestCase):
@@ -45,6 +46,39 @@ class TestReviewProject(unittest.TestCase):
                                                      node_name=r'^test'))
 
         self.assertEqual(rule.apply(file), [])
+
+
+class TestExampleTasks(unittest.TestCase):
+    def review(self, task):
+        project = ReviewProject(os.path.join(TEST_DIR, task), build_spec(''),
+                                er_scope='main')
+        return project.feedback
+
+    def test_java_example_task(self):
+        feedback = self.review('example_task_java')
+
+        self.assertIn('File: CaesarCipher.java, Line: 5: In class '
+                      'CaesarCipher, the cipherShift field is not private',
+                      feedback)
+        self.assertIn('File: CaesarCipherTest.java, Line: 12: The method, '
+                      'testShiftZeroIsSelf, does not follow the specified '
+                      'naming convention.', feedback)
+        self.assertEqual(feedback.count('-Identifier Rule:'), 1)
+        self.assertIn('Found potential instance of templateMethod pattern',
+                      feedback[-1])
+
+    def test_python_example_task(self):
+        feedback = self.review('example_task_python')
+
+        self.assertIn('File: caesar_cipher.py, Line: 7: In class '
+                      'CaesarCipher, the cipher_shift field is not private',
+                      feedback)
+        self.assertIn('File: caesar_cipher_test.py, Line: 8: The method, '
+                      'testShiftZeroIsSelf, does not follow the specified '
+                      'naming convention.', feedback)
+        self.assertEqual(feedback.count('-Identifier Rule:'), 1)
+        self.assertIn('Found potential instance of templateMethod pattern',
+                      feedback[-1])
 
 
 if __name__ == '__main__':

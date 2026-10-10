@@ -61,6 +61,8 @@ class ReviewProject:
     def apply_rules(self, rules):
         complete_feedback = ["CODE STYLE RULES:"]
         for rule in rules:
+            if not rule.applies_to(self.language):
+                continue
             complete_feedback.append(str(rule) + ':')
             rule_feedback = []
             for file in self.files:

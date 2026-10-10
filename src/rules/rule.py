@@ -28,5 +28,8 @@ class Rule:
         print('Invalid scope given')
         return file.ast
 
+    def applies_to(self, language):
+        return True
+
     def apply(self, review_file):
         raise NotImplementedError

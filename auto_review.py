@@ -11,9 +11,10 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Generate feedback on the structure of object-oriented '
                     'code.')
-    parser.add_argument('directory', nargs='?', default='test/example_task/',
+    parser.add_argument('directory', nargs='?',
+                        default='test/example_task_java/',
                         help='project directory to review (default: the '
-                             'bundled example task)')
+                             'bundled Java example task)')
     parser.add_argument('spec', nargs='?', default='',
                         help='specification file (currently unused, the '
                              'specification is built in spec.py)')

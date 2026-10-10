@@ -7,12 +7,16 @@ class IdentifierRule(Rule):
         super().__init__(scope)
         self.node_filter = node_filter
 
+    def applies_to(self, language):
+        # A filter only applies to the language it was written for
+        return self.node_filter is None or (
+                self.node_filter.language == language)
+
     def apply(self, file):
         ast = self.file_filter(file)
         if ast is None or self.node_filter is None:
             return []
-        # A filter only applies to files in the language it was written for
-        if file.language != self.node_filter.language:
+        if not self.applies_to(file.language):
             return []
 
         feedback = []

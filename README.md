@@ -1,7 +1,7 @@
 # AutoTA
 ### Detecting Structural Patterns in Object-Oriented Code
 
-AutoTA gives feedback on the structure of student code written in Java or Python. It parses a project into an entity-relation graph and looks for design patterns (Singleton, Template Method, Strategy) by matching subgraphs. It also checks rules such as encapsulation and naming conventions, and can ask an LLM to summarise the results.
+AutoTA gives feedback on the structure of student code written in Java or Python. It parses a project into an entity-relation graph and looks for the 23 Gang of Four design patterns by matching subgraphs. It also checks rules such as encapsulation and naming conventions, and can ask an LLM to summarise the results.
 
 Developed as part of my MEng Computing Individual Project at Imperial College London. The [report](doc/report.pdf) and [slides](doc/slides.pdf) are in `doc/`, and the version as submitted is the [v1.0 release](https://github.com/milesapnash/AutoTA/releases/tag/v1.0-meng-submission).
 
@@ -29,7 +29,11 @@ With no arguments it reviews `test/example_task_java`; `test/example_task_python
 
 The rules and patterns that are checked are set in `src/project/spec.py`.
 
-In Python, a leading underscore is treated as private, and types are taken from annotations where they exist.
+Each pattern is defined in `src/entity_relations/design_pattern.py` as the classes, methods and fields it needs and the relations between them, such as which method invokes which. `test/pattern_repos` has a small example of every pattern in both languages. Patterns with a similar structure can be reported for the same code: a Command, for example, also has the shape of an Adapter.
+
+In Python, a leading underscore is treated as private, and types are taken from annotations where they exist. Most patterns depend on types, so they are only found in annotated code.
+
+Java is parsed with [tree-sitter](https://tree-sitter.github.io/tree-sitter/), which handles current Java syntax such as records and switch expressions. A file with a syntax error is still parsed as far as it can be, so one broken file does not stop a review.
 
 ## Tests
 

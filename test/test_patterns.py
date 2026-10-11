@@ -160,6 +160,118 @@ class TestPythonPatterns(PatternTestCase):
             detect('StrategyIncomplete', 'strategy', 'python'), 'strategy')
 
 
+# The entities expected in the feedback for each of the remaining Gang of Four
+# patterns. Class and interface names are the same in both languages.
+GANG_OF_FOUR_PATTERNS = [
+    ('AbstractFactory', 'abstractFactory',
+     ['interface: CryptoFactory', 'interface: Cipher', 'interface: Hash',
+      'class: ModernCryptoFactory', 'class: LegacyCryptoFactory',
+      'class: AesCipher', 'class: Md5Hash']),
+    ('FactoryMethod', 'factoryMethod',
+     ['abstractClass: Messenger', 'interface: Cipher',
+      'class: CaesarMessenger', 'class: ReverseMessenger',
+      'class: CaesarCipher']),
+    ('Builder', 'builder',
+     ['class: ConfigDirector', 'interface: ConfigBuilder',
+      'class: CipherConfig', 'class: FastConfigBuilder',
+      'class: SecureConfigBuilder']),
+    ('Prototype', 'prototype',
+     ['interface: Key', 'class: SessionKey', 'class: MasterKey']),
+    ('Adapter', 'adapter',
+     ['interface: Cipher', 'class: ScramblerAdapter',
+      'class: LegacyScrambler']),
+    ('Bridge', 'bridge',
+     ['abstractClass: SecureChannel', 'interface: Cipher',
+      'class: TextChannel', 'class: FileChannel', 'class: CaesarCipher',
+      'class: XorCipher']),
+    ('Composite', 'composite',
+     ['interface: CryptoStep', 'class: ReverseStep', 'class: UpperStep',
+      'class: CipherPipeline']),
+    ('Decorator', 'decorator',
+     ['interface: Encryptor', 'class: PlainEncryptor',
+      'abstractClass: EncryptorDecorator', 'class: Base64Decorator',
+      'class: ReverseDecorator']),
+    ('Facade', 'facade',
+     ['class: CryptoFacade', 'class: KeyDeriver', 'class: Encryptor',
+      'class: Signer']),
+    ('Flyweight', 'flyweight',
+     ['interface: CipherAlgorithm', 'class: NamedAlgorithm',
+      'class: AlgorithmFactory']),
+    ('Proxy', 'proxy',
+     ['interface: SecretStore', 'class: VaultStore',
+      'class: ProtectedStore']),
+    ('ChainOfResponsibility', 'chainOfResponsibility',
+     ['abstractClass: CertificateCheck', 'class: ExpiryCheck',
+      'class: SignatureCheck']),
+    ('Command', 'command',
+     ['interface: Command', 'class: EncryptCommand',
+      'class: DecryptCommand', 'class: CipherEngine',
+      'class: CommandQueue']),
+    ('Interpreter', 'interpreter',
+     ['interface: Expression', 'class: Context',
+      'class: ReverseExpression', 'class: UpperExpression',
+      'class: SequenceExpression']),
+    ('Iterator', 'iterator',
+     ['interface: KeyIterator', 'interface: KeyCollection',
+      'class: KeyRing', 'class: KeyRingIterator']),
+    ('Mediator', 'mediator',
+     ['interface: Mediator', 'abstractClass: Participant', 'class: Alice',
+      'class: Bob', 'class: KeyExchangeServer']),
+    ('Memento', 'memento',
+     ['class: RotorMachine', 'class: RotorMemento', 'class: RotorHistory']),
+    ('Observer', 'observer',
+     ['class: KeyStore', 'interface: KeyObserver', 'class: AuditLogger',
+      'class: CacheInvalidator']),
+    ('State', 'state',
+     ['class: SecureConnection', 'interface: ConnectionState',
+      'class: HandshakeState', 'class: EncryptedState',
+      'class: ClosedState']),
+    ('Visitor', 'visitor',
+     ['interface: CryptoItem', 'interface: ItemVisitor',
+      'class: SecretKey', 'class: Certificate', 'class: ExpiryAuditor',
+      'class: ExportVisitor'])
+]
+
+
+class TestGangOfFourPatterns(PatternTestCase):
+    def test_pattern_found_in_both_languages(self):
+        for language in ('java', 'python'):
+            for repo, pattern, entities in GANG_OF_FOUR_PATTERNS:
+                with self.subTest(language=language, pattern=pattern):
+                    feedback = detect(repo, pattern, language)
+
+                    self.assert_found(feedback, pattern, entities)
+
+    def test_pattern_not_found_in_unrelated_repo(self):
+        # A strategy interface without implementations matches none of these
+        for language in ('java', 'python'):
+            for _, pattern, _ in GANG_OF_FOUR_PATTERNS:
+                with self.subTest(language=language, pattern=pattern):
+                    feedback = detect('StrategyIncomplete', pattern,
+                                      language)
+
+                    self.assert_not_found(feedback, pattern)
+
+    def test_pattern_not_found_in_repo_of_similar_pattern(self):
+        # Each repo has much of the structure of the pattern, but lacks what
+        # sets the pattern apart from the one that the repo implements
+        cases = [('Adapter', 'facade'), ('Adapter', 'proxy'),
+                 ('Proxy', 'facade'), ('Decorator', 'bridge'),
+                 ('Mediator', 'bridge'), ('Composite', 'interpreter'),
+                 ('Visitor', 'composite'), ('State', 'observer'),
+                 ('Iterator', 'flyweight'), ('Strategy', 'state'),
+                 ('FactoryMethod', 'abstractFactory')]
+        for language in ('java', 'python'):
+            for repo, pattern in cases:
+                with self.subTest(language=language, repo=repo,
+                                  pattern=pattern):
+                    feedback = detect(repo, pattern, language)
+
+                    self.assertNotIn(
+                        f'Found potential instance of {pattern} pattern',
+                        feedback)
+
+
 class TestDesignPattern(unittest.TestCase):
     def test_unknown_pattern_is_rejected(self):
         with self.assertRaises(ValueError):

@@ -6,7 +6,9 @@ from src.filters.java_filter import JavaFilter
 from src.project.review_file import ReviewFile
 from src.project.review_project import ReviewProject
 from src.project.spec import Spec, build_spec
+from src.rules.encapsulation_rule import EncapsulationRule
 from src.rules.identifier_rule import IdentifierRule
+from src.scope import in_scope
 
 TEST_DIR = os.path.dirname(__file__)
 PATTERN_REPOS = os.path.join(TEST_DIR, 'pattern_repos')
@@ -56,6 +58,107 @@ class TestReviewProject(unittest.TestCase):
                                                      node_name=r'^test'))
 
         self.assertEqual(rule.apply(file), [])
+
+
+def write_files(directory, files):
+    """Writes each file, given by its path within a directory."""
+    for path, contents in files.items():
+        full_path = os.path.join(directory, *path.split('/'))
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, 'w', encoding='utf-8') as file:
+            file.write(contents)
+
+
+MAVEN_PROJECT = {
+    'pom.xml': '<project/>',
+    'src/main/java/app/Account.java':
+        'package app;\npublic class Account { public int balance; }\n',
+    'src/test/java/app/AccountTest.java':
+        'package app;\npublic class AccountTest { public int count; }\n'}
+
+
+class TestScope(unittest.TestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.directory = directory.name
+
+    def graph_classes(self, scope):
+        project = ReviewProject(self.directory, Spec('scope test'),
+                                er_scope=scope)
+        return {entity.info['name']
+                for entity in project.er_graph['entities']
+                if entity.type == 'class'}
+
+    def test_scope_is_found_within_a_maven_layout(self):
+        write_files(self.directory, MAVEN_PROJECT)
+
+        for scope in ('main', 'src/main', 'src/main/java/app'):
+            with self.subTest(scope=scope):
+                self.assertEqual(self.graph_classes(scope), {'Account'})
+
+    def test_scope_of_the_project_directory_is_every_file(self):
+        write_files(self.directory, MAVEN_PROJECT)
+
+        for scope in ('.', None):
+            with self.subTest(scope=scope):
+                self.assertEqual(self.graph_classes(scope),
+                                 {'Account', 'AccountTest'})
+
+    def test_scope_with_no_files_is_rejected(self):
+        write_files(self.directory, MAVEN_PROJECT)
+
+        with self.assertRaises(ValueError):
+            ReviewProject(self.directory, Spec('scope test'),
+                          er_scope='missing')
+
+    def test_scope_matches_whole_directory_names(self):
+        self.assertTrue(in_scope(os.path.join('src', 'main', 'java'), 'main'))
+        self.assertTrue(in_scope('main', 'main'))
+        self.assertTrue(in_scope('src/main/java', 'main/java'))
+        self.assertFalse(in_scope('src/maintenance', 'main'))
+        self.assertFalse(in_scope('src/test/java', 'main'))
+        self.assertFalse(in_scope('src/java/main', 'main/java'))
+        self.assertFalse(in_scope('.', 'main'))
+
+    def test_rule_scope_is_found_within_a_maven_layout(self):
+        write_files(self.directory, MAVEN_PROJECT)
+        spec = Spec('scope test',
+                    rules=[EncapsulationRule(scope=('dir', 'main'))])
+
+        project = ReviewProject(self.directory, spec)
+
+        self.assertIn('File: Account.java, Line: 2: In class Account, the '
+                      'balance field is not private', project.feedback)
+        self.assertFalse(any('AccountTest' in line
+                             for line in project.feedback))
+
+    def test_rule_with_no_files_in_scope_says_so(self):
+        write_files(self.directory, MAVEN_PROJECT)
+        spec = Spec('scope test',
+                    rules=[EncapsulationRule(scope=('dir', 'missing'))])
+
+        project = ReviewProject(self.directory, spec)
+
+        self.assertIn("No files were found within ('dir', 'missing')",
+                      project.feedback)
+
+    def test_directories_that_are_not_source_are_left_out(self):
+        write_files(self.directory, {
+            'pom.xml': '<project/>',
+            'src/app/Kept.java': 'class Kept {}',
+            # A package may share its name with a build directory
+            'src/app/build/Builder.java': 'class Builder {}',
+            'target/generated/Generated.java': 'class Generated {}',
+            '.git/hooks/Hook.java': 'class Hook {}',
+            'node_modules/lib/Dependency.java': 'class Dependency {}',
+            'environment/pyvenv.cfg': '',
+            'environment/lib/Installed.java': 'class Installed {}'})
+
+        project = ReviewProject(self.directory, Spec('scope test'))
+
+        self.assertEqual([file.file_name for file in project.files],
+                         ['Kept.java', 'Builder.java'])
 
 
 class TestExampleTasks(unittest.TestCase):

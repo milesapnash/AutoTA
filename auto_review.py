@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 from dotenv import load_dotenv
 
@@ -16,8 +17,10 @@ def parse_args():
                         help='project directory to review (default: the '
                              'bundled Java example task)')
     parser.add_argument('--scope', default='main',
-                        help='subdirectory used to build the entity-relation '
-                             'graph (default: main)')
+                        help='directory used to build the entity-relation '
+                             'graph, by name or path and wherever it is in '
+                             'the project, or . for the whole project '
+                             '(default: main)')
     parser.add_argument('--pdf', action='store_true',
                         help='write the feedback to a PDF')
     parser.add_argument('--output', default='feedback.pdf',
@@ -32,7 +35,10 @@ def main():
 
     spec = build_spec()
     print('-Specification Built Successfully')
-    project = ReviewProject(args.directory, spec, er_scope=args.scope)
+    try:
+        project = ReviewProject(args.directory, spec, er_scope=args.scope)
+    except ValueError as error:
+        sys.exit(f'-Project Could Not Be Built: {error}')
     print('-Project Built Successfully')
     project.print_feedback()
 

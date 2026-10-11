@@ -25,7 +25,9 @@ The LLM summary is optional. To use it, copy `.env.example` to `.env` and set `O
 python auto_review.py [directory] [--scope SCOPE] [--pdf] [--output PATH]
 ```
 
-With no arguments it reviews `test/example_task_java`; `test/example_task_python` is the same task in Python. The language is taken from the project's files. Feedback is printed, and `--pdf` also writes it to a PDF (`feedback.pdf` by default). `--scope` is the subdirectory the graph is built from (`main` by default).
+With no arguments it reviews `test/example_task_java`; `test/example_task_python` is the same task in Python. The language is taken from the project's files. Feedback is printed, and `--pdf` also writes it to a PDF (`feedback.pdf` by default). `--scope` is the directory the graph is built from (`main` by default). It is given by name or by path and may be anywhere in the project, so `main` covers `src/main/java` in a Maven project; `--scope .` uses the whole project.
+
+Hidden directories, virtual environments, `node_modules` and the output of a build (such as `target` beside a `pom.xml`) are not reviewed.
 
 The rules and patterns that are checked are set in `src/project/spec.py`.
 

@@ -6,6 +6,7 @@ from src.project.review_file import ReviewFile
 from src.project.utils import create_feedback_pdf, gpt_api_request
 from src.rules.encapsulation_rule import EncapsulationRule
 from src.rules.identifier_rule import IdentifierRule
+from src.scope import in_scope, walk_source
 
 
 class ReviewProject:
@@ -19,7 +20,7 @@ class ReviewProject:
         self.pattern_matches = {}
 
         source_files = [(root, file_name)
-                        for root, _, dir_files in os.walk(directory)
+                        for root, dir_files in walk_source(directory)
                         for file_name in dir_files
                         if language_of(file_name) is not None]
         if not source_files:
@@ -40,11 +41,12 @@ class ReviewProject:
         if er_scope is None:
             self.er_graph = self.build_er_graph(self.files)
         else:
-            scope_dir = os.path.normpath(er_scope)
-            scoped_files = [file for file in self.files if
-                            os.path.commonpath(
-                                [os.path.normpath(file.relative_path),
-                                 scope_dir]) == scope_dir]
+            scoped_files = [file for file in self.files
+                            if in_scope(file.relative_path, er_scope)]
+            if not scoped_files:
+                raise ValueError(
+                    f'No source files found in the scope {er_scope} of '
+                    f'{directory}')
             self.er_graph = self.build_er_graph(scoped_files)
 
         self.feedback = self.get_feedback()
@@ -66,6 +68,11 @@ class ReviewProject:
             if not rule.applies_to(self.language):
                 continue
             complete_feedback.append(str(rule) + ':')
+            if not any(rule.file_filter(file) is not None
+                       for file in self.files):
+                complete_feedback.append(
+                    f'No files were found within {rule.scope}')
+                continue
             rule_feedback = []
             for file in self.files:
                 feedback = rule.apply(file)

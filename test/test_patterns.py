@@ -272,6 +272,116 @@ class TestGangOfFourPatterns(PatternTestCase):
                         feedback)
 
 
+def find(repo, pattern, language='java'):
+    """Returns the instances found of a pattern in a fixture repo."""
+    project = ReviewProject(os.path.join(PATTERN_REPOS, language, repo),
+                            Spec('pattern test',
+                                 patterns=[DesignPattern(pattern)]))
+    return project.pattern_matches[pattern]
+
+
+def names(match, role):
+    return [entity.info['name'] for entity in match.roles[role]]
+
+
+class TestMatches(unittest.TestCase):
+    def test_match_gives_the_entities_for_each_role(self):
+        for language in ('java', 'python'):
+            with self.subTest(language=language):
+                matches = find('Strategy', 'strategy', language)
+
+                self.assertEqual(len(matches), 1)
+                self.assertEqual(matches[0].missing, [])
+                self.assertEqual(names(matches[0], 'context'), ['ContextC'])
+                self.assertEqual(names(matches[0], 'strategy'), ['Strategy'])
+                self.assertEqual(
+                    sorted(names(matches[0], 'concrete_strategy')),
+                    ['ConcreteStrategyA', 'ConcreteStrategyB'])
+
+    def test_entity_fills_one_role_at_a_time(self):
+        # The composite implements the component, as a leaf does, and the
+        # originator handles mementos, as the caretaker does
+        cases = [('Composite', 'composite', 'leaf',
+                  ['ReverseStep', 'UpperStep']),
+                 ('Interpreter', 'interpreter', 'terminal',
+                  ['ReverseExpression', 'UpperExpression']),
+                 ('Memento', 'memento', 'caretaker', ['RotorHistory'])]
+        for language in ('java', 'python'):
+            for repo, pattern, role, expected in cases:
+                with self.subTest(language=language, pattern=pattern):
+                    matches = find(repo, pattern, language)
+
+                    self.assertEqual(len(matches), 1)
+                    self.assertEqual(sorted(names(matches[0], role)),
+                                     expected)
+
+    def test_separate_instances_are_separate_matches(self):
+        code = """
+        interface Sorter { void sort(); }
+        class QuickSorter implements Sorter { public void sort() {} }
+        class ListView {
+            private Sorter sorter;
+            void show() { sorter.sort(); }
+        }
+
+        interface Encoder { void encode(); }
+        class Base64Encoder implements Encoder { public void encode() {} }
+        class Uploader {
+            private Encoder encoder;
+            void upload() { encoder.encode(); }
+        }
+
+        class Unrelated { void run() {} }
+        """
+        graph = build_java_graph([ReviewFile('./', '', 'Example.java',
+                                             contents=code)])
+
+        matches = DesignPattern('strategy').find_matches(graph, 'java')
+
+        found = {(names(match, 'context')[0], names(match, 'strategy')[0],
+                  names(match, 'concrete_strategy')[0])
+                 for match in matches}
+        self.assertEqual(found,
+                         {('ListView', 'Sorter', 'QuickSorter'),
+                          ('Uploader', 'Encoder', 'Base64Encoder')})
+        for match in matches:
+            self.assertEqual(names(match, 'concrete_method'),
+                             ['sort' if names(match, 'strategy') == ['Sorter']
+                              else 'encode'])
+
+    def test_roles_need_different_entities(self):
+        # A facade brings together two subsystems, not the same one twice
+        code = """
+        class Engine { void start() {} }
+        class Car {
+            private Engine engine;
+            void drive() { engine.start(); engine.start(); }
+        }
+        """
+        graph = build_java_graph([ReviewFile('./', '', 'Example.java',
+                                             contents=code)])
+
+        matches = DesignPattern('facade').find_matches(graph, 'java')
+
+        self.assertEqual([match for match in matches if not match.missing],
+                         [])
+
+    def test_almost_complete_match_names_what_is_missing(self):
+        matches = find('TemplateMethodIncomplete', 'templateMethod')
+
+        self.assertEqual(len(matches), 1)
+        # Nothing overrides the abstract methods without a subclass
+        self.assertEqual(matches[0].missing, ['subclass', 'override'])
+        self.assertEqual(names(matches[0], 'template'), ['TemplateT'])
+        self.assertNotIn('subclass', matches[0].roles)
+
+    def test_role_related_to_itself(self):
+        # The handler's handle method invokes itself on the next handler
+        matches = find('ChainOfResponsibility', 'chainOfResponsibility')
+
+        self.assertEqual(names(matches[0], 'handle'), ['handle'])
+
+
 class TestDesignPattern(unittest.TestCase):
     def test_unknown_pattern_is_rejected(self):
         with self.assertRaises(ValueError):

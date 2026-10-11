@@ -15,6 +15,8 @@ class ReviewProject:
         self.spec = spec
         self.files = []
         self.summary = None
+        # The instances found of each design pattern in the spec
+        self.pattern_matches = {}
 
         source_files = [(root, file_name)
                         for root, _, dir_files in os.walk(directory)
@@ -90,9 +92,10 @@ class ReviewProject:
     def find_patterns(self, patterns):
         pattern_feedback = ["DESIGN PATTERNS:"]
         for pattern in patterns:
+            matches = pattern.find_matches(self.er_graph, self.language)
+            self.pattern_matches[pattern.pattern] = matches
             pattern_feedback.append('-' + pattern.pattern + '\n' +
-                                    pattern.find_potential_isomorphisms(
-                                        self.er_graph, self.language))
+                                    pattern.describe(matches))
 
         return pattern_feedback
 

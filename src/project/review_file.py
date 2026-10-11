@@ -12,7 +12,8 @@ class ReviewFile:
         self.feedback = []
 
         if contents is None:
-            with open(os.path.join(root, file_name), 'r') as file:
+            with open(os.path.join(root, file_name), 'r', encoding='utf-8',
+                      errors='replace') as file:
                 self.contents = file.read()
         else:
             self.contents = contents

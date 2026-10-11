@@ -39,6 +39,16 @@ class TestReviewProject(unittest.TestCase):
             with self.assertRaises(ValueError):
                 ReviewProject(directory, Spec('language test'))
 
+    def test_file_is_read_as_utf8(self):
+        code = 'class Café { String złoty = "✓"; }'
+        with tempfile.TemporaryDirectory() as directory:
+            with open(os.path.join(directory, 'Cafe.java'), 'w',
+                      encoding='utf-8') as file:
+                file.write(code)
+            review_file = ReviewFile(directory, '', 'Cafe.java')
+
+        self.assertEqual(review_file.contents, code)
+
     def test_rule_ignores_files_in_another_language(self):
         code = 'class Example:\n    def testThing(self):\n        pass\n'
         file = ReviewFile('./', '', 'example.py', contents=code)

@@ -7,11 +7,21 @@ class FeedbackPDF(FPDF):
     def __init__(self, task='Student Exercise', summary=None, orientation='L',
                  unit='mm', size='A4'):
         super().__init__(orientation, unit, size)
+        # The built-in fonts cover Windows-1252, which has the dashes and
+        # quotation marks that the default of Latin-1 lacks
+        self.core_fonts_encoding = 'windows-1252'
         self.file_name = ""
         self.add_cover_page(task, 'AutoTA', summary)
         self.set_font('Courier', '', 8)
         self.line_height = self.font_size * 1.25
         self.set_auto_page_break(auto=True, margin=15)
+
+    def normalize_text(self, text):
+        # A character that the built-in fonts cannot show is replaced with a
+        # question mark, rather than stopping the PDF from being written
+        encoding = self.core_fonts_encoding
+        return super().normalize_text(
+            text.encode(encoding, errors='replace').decode(encoding))
 
     def header(self):
         self.set_font('Courier', 'B', 12)

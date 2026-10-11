@@ -52,15 +52,24 @@ class ReviewProject:
         self.feedback = self.get_feedback()
 
     def get_feedback(self):
+        feedback = self.unreviewed_files()
         if self.spec is None:
-            return []
-        feedback = []
+            return feedback
         if self.spec.rules is not None:
-            feedback = self.apply_rules(self.spec.rules)
+            feedback.extend(self.apply_rules(self.spec.rules))
         if self.spec.patterns is not None:
             feedback.extend(self.find_patterns(self.spec.patterns))
 
         return feedback
+
+    def unreviewed_files(self):
+        """Returns feedback naming the files that could not be reviewed,
+        which the rest of the project is reviewed without."""
+        unreviewed = [f'File: {file.file_name}: {file.error}'
+                      for file in self.files if file.error is not None]
+        if not unreviewed:
+            return []
+        return ['FILES NOT REVIEWED:'] + unreviewed + ['']
 
     def apply_rules(self, rules):
         complete_feedback = ["CODE STYLE RULES:"]
@@ -107,7 +116,8 @@ class ReviewProject:
         return pattern_feedback
 
     def build_er_graph(self, files):
-        return LANGUAGES[self.language].build_graph(files)
+        return LANGUAGES[self.language].build_graph(
+            [file for file in files if file.ast is not None])
 
     def print_feedback(self):
         if not self.feedback:

@@ -1,8 +1,13 @@
+import io
 import os
 import tempfile
 import unittest
+import warnings
+from contextlib import contextmanager, redirect_stdout
 
+from src.entity_relations.design_pattern import DesignPattern
 from src.filters.java_filter import JavaFilter
+from src.project.feedback_pdf import FeedbackPDF
 from src.project.review_file import ReviewFile
 from src.project.review_project import ReviewProject
 from src.project.spec import Spec, build_spec
@@ -159,6 +164,82 @@ class TestScope(unittest.TestCase):
 
         self.assertEqual([file.file_name for file in project.files],
                          ['Kept.java', 'Builder.java'])
+
+
+SINGLETON = '''
+class Config:
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+'''
+
+
+@contextmanager
+def quiet():
+    """Hides what writing a PDF prints, and the warnings of its library."""
+    with warnings.catch_warnings(), redirect_stdout(io.StringIO()):
+        warnings.simplefilter('ignore', DeprecationWarning)
+        yield
+
+
+class TestBadInput(unittest.TestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.directory = directory.name
+
+    def test_file_that_cannot_be_parsed_does_not_stop_the_review(self):
+        write_files(self.directory, {
+            'broken.py': 'def broken(:\n    pass\n',
+            'null.py': 'value = 1\x00\n',
+            'singleton.py': SINGLETON})
+        spec = Spec('bad input test', rules=[EncapsulationRule()],
+                    patterns=[DesignPattern('singleton')])
+
+        project = ReviewProject(self.directory, spec)
+
+        self.assertEqual(project.feedback[:4], [
+            'FILES NOT REVIEWED:',
+            'File: broken.py: could not be parsed (line 1: invalid syntax)',
+            'File: null.py: could not be parsed (source code string cannot '
+            'contain null bytes)',
+            ''])
+        self.assertIn('Found potential instance of singleton pattern',
+                      project.feedback[-1])
+
+    def test_project_without_bad_files_has_no_section_for_them(self):
+        write_files(self.directory, {'fine.py': 'class Fine:\n    pass\n'})
+
+        project = ReviewProject(self.directory, Spec('bad input test'))
+
+        self.assertEqual(project.feedback, [])
+
+    def test_pdf_is_written_with_characters_outside_latin_1(self):
+        write_files(self.directory, {
+            'Café.java':
+                'class Café { String s = "中文 — '
+                '‘quoted’"; }\n'})
+        project = ReviewProject(self.directory, Spec('Task — one'))
+        project.summary = ('Well structured — the “Café” '
+                           'class… 中文')
+        output_path = os.path.join(self.directory, 'feedback.pdf')
+
+        with quiet():
+            project.build_pdf(output_path)
+
+        self.assertGreater(os.path.getsize(output_path), 0)
+
+    def test_pdf_keeps_the_punctuation_its_fonts_have(self):
+        with quiet():
+            pdf = FeedbackPDF()
+
+        # A dash and quotation marks are kept, where Chinese is replaced
+        self.assertNotIn('?', pdf.normalize_text('— “”'))
+        self.assertEqual(pdf.normalize_text('中文'), '??')
 
 
 class TestExampleTasks(unittest.TestCase):

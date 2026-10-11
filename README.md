@@ -35,7 +35,9 @@ Each pattern is defined in `src/entity_relations/design_pattern.py` as the class
 
 In Python, a leading underscore is treated as private, and types are taken from annotations where they exist. Most patterns depend on types, so they are only found in annotated code.
 
-Java is parsed with [tree-sitter](https://tree-sitter.github.io/tree-sitter/), which handles current Java syntax such as records and switch expressions. A file with a syntax error is still parsed as far as it can be, so one broken file does not stop a review.
+Java is parsed with [tree-sitter](https://tree-sitter.github.io/tree-sitter/), which handles current Java syntax such as records and switch expressions. A file with a syntax error is still parsed as far as it can be, so one broken file does not stop a review. A Python file that cannot be parsed is listed in the feedback, and the rest of the project is reviewed without it.
+
+The PDF is written with built-in fonts, so a character they lack, such as one in Chinese, appears as a question mark.
 
 ## Tests
 

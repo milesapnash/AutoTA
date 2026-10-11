@@ -1,858 +1,456 @@
-from src.entity_relations.er_classes import (
-    AbstractClass, AbstractMethod, Class, Constructor, Field, Interface,
-    Method)
+from src.entity_relations import er_classes
 
-# Each pattern is defined by its entities and relations, which may be
-# followed by the relations that must not hold
-PATTERNS = {
-    'singleton':
-        ({
-             'singleton': Class(),
-             'private constructor': Constructor(
-                 info={'modifiers': {'private'}}),
-             'private instance': Field(info={'modifiers': {'private'}}),
-             'get_instance': Method()
-         },
-         {
-             'singleton': {
-                 'has': ['private constructor', 'private instance',
-                         'get_instance']
-             },
-             'private instance': {
-                 'isOfType': ['singleton'],
-                 'instantiates': ['singleton']
-             },
-             'get_instance': {
-                 'hasReturnType': ['singleton'],
-                 'returns': ['private instance']
-             }
-         }),
-    'templateMethod':
-        ({
-             'template': AbstractClass(),
-             'abstract method': AbstractMethod(),
-             'template method': Method(),
-             'subclass': Class(),
-             'override': Method()
-         },
-         {
-             'template': {
-                 'has': ['abstract method', 'template method']
-             },
-             'subclass': {
-                 'extends': ['template'],
-                 'has': ['override']
-             },
-             'template method': {
-                 'invokes': ['abstract method']
-             }
-         }),
-    'strategy':
-        ({
-             'context': Class(),
-             'context_field': Field(),
-             'context_method': Method(),
-             'strategy': Interface(),
-             'strategy_method': AbstractMethod(),
-             'concrete_strategy': Class(),
-             'concrete_method': Method()
-         },
-         {
-             'context': {
-                 'has': ['context_field', 'context_method']
-             },
-             'context_field': {
-                 'isOfType': ['strategy']
-             },
-             'context_method': {
-                 'invokes': ['strategy_method']
-             },
-             'strategy': {
-                 'has': ['strategy_method']
-             },
-             'concrete_strategy': {
-                 'implements': ['strategy']
-             },
-             'concrete_method': {
-                 'overrides': ['strategy_method']
-             }
-         },
-         # A class that implements the interface it holds is combining
-         # or wrapping its own kind, as a composite or a decorator does
-         {
-             'context': {
-                 'implements': ['strategy']
-             }
-         }),
+# The relations that an entity in the graph can have with another
+RELATIONS = set(er_classes.Entity().relations)
 
-    # Creational patterns
-    'abstractFactory':
-        ({
-             'factory': Interface(),
-             'create_a': AbstractMethod(),
-             'create_b': AbstractMethod(),
-             'product_a': Interface(),
-             'product_b': Interface(),
-             'concrete_factory': Class(),
-             'concrete_create_a': Method(),
-             'concrete_create_b': Method(),
-             'concrete_product_a': Class(),
-             'concrete_product_b': Class()
-         },
-         {
-             'factory': {
-                 'has': ['create_a', 'create_b']
-             },
-             'create_a': {
-                 'hasReturnType': ['product_a']
-             },
-             'create_b': {
-                 'hasReturnType': ['product_b']
-             },
-             'concrete_factory': {
-                 'implements': ['factory'],
-                 'has': ['concrete_create_a', 'concrete_create_b']
-             },
-             'concrete_create_a': {
-                 'overrides': ['create_a'],
-                 'instantiates': ['concrete_product_a']
-             },
-             'concrete_create_b': {
-                 'overrides': ['create_b'],
-                 'instantiates': ['concrete_product_b']
-             },
-             'concrete_product_a': {
-                 'implements': ['product_a']
-             },
-             'concrete_product_b': {
-                 'implements': ['product_b']
-             }
-         }),
-    'factoryMethod':
-        ({
-             'creator': AbstractClass(),
-             'factory_method': AbstractMethod(),
-             'operation': Method(),
-             'product': Interface(),
-             'concrete_creator': Class(),
-             'concrete_factory_method': Method(),
-             'concrete_product': Class()
-         },
-         {
-             'creator': {
-                 'has': ['factory_method', 'operation']
-             },
-             'factory_method': {
-                 'hasReturnType': ['product']
-             },
-             'operation': {
-                 'invokes': ['factory_method']
-             },
-             'concrete_creator': {
-                 'extends': ['creator'],
-                 'has': ['concrete_factory_method']
-             },
-             'concrete_factory_method': {
-                 'overrides': ['factory_method'],
-                 'instantiates': ['concrete_product']
-             },
-             'concrete_product': {
-                 'implements': ['product']
-             }
-         }),
-    'builder':
-        ({
-             'director': Class(),
-             'director_field': Field(),
-             'construct': Method(),
-             'builder': Interface(),
-             'build_step': AbstractMethod(),
-             'get_result': AbstractMethod(),
-             'product': Class(),
-             'product_method': Method(),
-             'concrete_builder': Class(),
-             'product_field': Field(),
-             'concrete_step': Method(),
-             'concrete_get_result': Method()
-         },
-         {
-             'director': {
-                 'has': ['director_field', 'construct']
-             },
-             'director_field': {
-                 'isOfType': ['builder']
-             },
-             'construct': {
-                 'invokes': ['build_step', 'get_result']
-             },
-             'builder': {
-                 'has': ['build_step', 'get_result']
-             },
-             'get_result': {
-                 'hasReturnType': ['product']
-             },
-             'product': {
-                 'has': ['product_method']
-             },
-             'concrete_builder': {
-                 'implements': ['builder'],
-                 'has': ['product_field', 'concrete_step',
-                         'concrete_get_result']
-             },
-             'product_field': {
-                 'isOfType': ['product'],
-                 'instantiates': ['product']
-             },
-             'concrete_step': {
-                 'overrides': ['build_step'],
-                 'invokes': ['product_method']
-             },
-             'concrete_get_result': {
-                 'overrides': ['get_result'],
-                 'returns': ['product_field']
-             }
-         }),
-    'prototype':
-        ({
-             'prototype': Interface(),
-             'copy': AbstractMethod(),
-             'concrete_prototype': Class(),
-             'concrete_copy': Method(),
-             'client': Method()
-         },
-         {
-             'prototype': {
-                 'has': ['copy']
-             },
-             'copy': {
-                 'hasReturnType': ['prototype']
-             },
-             'concrete_prototype': {
-                 'implements': ['prototype'],
-                 'has': ['concrete_copy']
-             },
-             'concrete_copy': {
-                 'overrides': ['copy'],
-                 'instantiates': ['concrete_prototype']
-             },
-             'client': {
-                 'invokes': ['copy']
-             }
-         }),
 
-    # Structural patterns
-    'adapter':
-        ({
-             'target': Interface(),
-             'target_method': AbstractMethod(),
-             'adapter': Class(),
-             'adapter_method': Method(),
-             'adaptee_field': Field(),
-             'adaptee': Class(),
-             'adaptee_method': Method()
-         },
-         {
-             'target': {
-                 'has': ['target_method']
-             },
-             'adapter': {
-                 'implements': ['target'],
-                 'has': ['adaptee_field', 'adapter_method']
-             },
-             'adaptee_field': {
-                 'isOfType': ['adaptee']
-             },
-             'adapter_method': {
-                 'overrides': ['target_method'],
-                 'invokes': ['adaptee_method']
-             },
-             'adaptee': {
-                 'has': ['adaptee_method']
-             }
-         },
-         # A class that already implements the target has no need of an
-         # adapter, and one that stands in for it is a proxy
-         {
-             'adaptee': {
-                 'implements': ['target']
-             }
-         }),
-    'bridge':
-        ({
-             'abstraction': AbstractClass(),
-             'implementor_field': Field(),
-             'abstract_operation': AbstractMethod(),
-             'implementor': Interface(),
-             'implementor_method': AbstractMethod(),
-             'refined_abstraction': Class(),
-             'refined_operation': Method(),
-             'concrete_implementor': Class()
-         },
-         {
-             'abstraction': {
-                 'has': ['implementor_field', 'abstract_operation']
-             },
-             'implementor_field': {
-                 'isOfType': ['implementor']
-             },
-             'implementor': {
-                 'has': ['implementor_method']
-             },
-             'refined_abstraction': {
-                 'extends': ['abstraction'],
-                 'has': ['refined_operation']
-             },
-             'refined_operation': {
-                 'overrides': ['abstract_operation'],
-                 'invokes': ['implementor_method']
-             },
-             'concrete_implementor': {
-                 'implements': ['implementor']
-             }
-         }),
-    'composite':
-        ({
-             'component': Interface(),
-             'operation': AbstractMethod(),
-             'leaf': Class(),
-             'composite': Class(),
-             'children': Field(),
-             'add': Method(),
-             'composite_operation': Method()
-         },
-         {
-             'component': {
-                 'has': ['operation']
-             },
-             'leaf': {
-                 'implements': ['component']
-             },
-             'composite': {
-                 'implements': ['component'],
-                 'has': ['children', 'add', 'composite_operation']
-             },
-             'children': {
-                 'isCollectionOf': ['component']
-             },
-             'add': {
-                 'parameterOfType': ['component']
-             },
-             'composite_operation': {
-                 'overrides': ['operation'],
-                 'invokes': ['operation']
-             }
-         }),
-    'decorator':
-        ({
-             'component': Interface(),
-             'operation': AbstractMethod(),
-             'concrete_component': Class(),
-             'decorator': AbstractClass(),
-             'wrapped': Field(),
-             'concrete_decorator': Class(),
-             'decorated_operation': Method()
-         },
-         {
-             'component': {
-                 'has': ['operation']
-             },
-             'concrete_component': {
-                 'implements': ['component']
-             },
-             'decorator': {
-                 'implements': ['component'],
-                 'has': ['wrapped']
-             },
-             'wrapped': {
-                 'isOfType': ['component']
-             },
-             'concrete_decorator': {
-                 'extends': ['decorator'],
-                 'has': ['decorated_operation']
-             },
-             'decorated_operation': {
-                 'overrides': ['operation'],
-                 'invokes': ['operation']
-             }
-         }),
-    'facade':
-        ({
-             'facade': Class(),
-             'facade_method': Method(),
-             'subsystem_field_a': Field(),
-             'subsystem_field_b': Field(),
-             'subsystem_a': Class(),
-             'subsystem_b': Class(),
-             'subsystem_method_a': Method(),
-             'subsystem_method_b': Method()
-         },
-         {
-             'facade': {
-                 'has': ['subsystem_field_a', 'subsystem_field_b',
-                         'facade_method']
-             },
-             'facade_method': {
-                 'invokes': ['subsystem_method_a', 'subsystem_method_b']
-             },
-             'subsystem_field_a': {
-                 'isOfType': ['subsystem_a']
-             },
-             'subsystem_field_b': {
-                 'isOfType': ['subsystem_b']
-             },
-             'subsystem_a': {
-                 'has': ['subsystem_method_a']
-             },
-             'subsystem_b': {
-                 'has': ['subsystem_method_b']
-             }
-         }),
-    'flyweight':
-        ({
-             'flyweight': Interface(),
-             'operation': AbstractMethod(),
-             'concrete_flyweight': Class(),
-             'intrinsic_state': Field(),
-             'flyweight_factory': Class(),
-             'pool': Field(),
-             'get_flyweight': Method()
-         },
-         {
-             'flyweight': {
-                 'has': ['operation']
-             },
-             'concrete_flyweight': {
-                 'implements': ['flyweight'],
-                 'has': ['intrinsic_state']
-             },
-             'flyweight_factory': {
-                 'has': ['pool', 'get_flyweight']
-             },
-             'pool': {
-                 'isCollectionOf': ['flyweight']
-             },
-             'get_flyweight': {
-                 'hasReturnType': ['flyweight'],
-                 'instantiates': ['concrete_flyweight']
-             }
-         }),
-    'proxy':
-        ({
-             'subject': Interface(),
-             'subject_method': AbstractMethod(),
-             'real_subject': Class(),
-             'real_method': Method(),
-             'proxy': Class(),
-             'real_field': Field(),
-             'proxy_method': Method()
-         },
-         {
-             'subject': {
-                 'has': ['subject_method']
-             },
-             'real_subject': {
-                 'implements': ['subject'],
-                 'has': ['real_method']
-             },
-             'real_method': {
-                 'overrides': ['subject_method']
-             },
-             'proxy': {
-                 'implements': ['subject'],
-                 'has': ['real_field', 'proxy_method']
-             },
-             'real_field': {
-                 'isOfType': ['real_subject']
-             },
-             'proxy_method': {
-                 'overrides': ['subject_method'],
-                 'invokes': ['real_method']
-             }
-         }),
+def as_list(targets):
+    return [targets] if isinstance(targets, str) else list(targets)
 
-    # Behavioural patterns
-    'chainOfResponsibility':
-        ({
-             'handler': AbstractClass(),
-             'next_handler': Field(),
-             'handle': Method(),
-             'abstract_step': AbstractMethod(),
-             'concrete_handler': Class(),
-             'concrete_step': Method()
-         },
-         {
-             'handler': {
-                 'has': ['next_handler', 'handle', 'abstract_step']
-             },
-             'next_handler': {
-                 'isOfType': ['handler']
-             },
-             # The request is passed along the chain by handle invoking
-             # itself on the next handler
-             'handle': {
-                 'invokes': ['handle', 'abstract_step']
-             },
-             'concrete_handler': {
-                 'extends': ['handler'],
-                 'has': ['concrete_step']
-             },
-             'concrete_step': {
-                 'overrides': ['abstract_step']
-             }
-         }),
-    'command':
-        ({
-             'command': Interface(),
-             'execute': AbstractMethod(),
-             'concrete_command': Class(),
-             'receiver_field': Field(),
-             'receiver': Class(),
-             'receiver_method': Method(),
-             'concrete_execute': Method(),
-             'invoker': Class(),
-             'add_command': Method(),
-             'invoke': Method()
-         },
-         {
-             'command': {
-                 'has': ['execute']
-             },
-             'concrete_command': {
-                 'implements': ['command'],
-                 'has': ['receiver_field', 'concrete_execute']
-             },
-             'receiver_field': {
-                 'isOfType': ['receiver']
-             },
-             'receiver': {
-                 'has': ['receiver_method']
-             },
-             'concrete_execute': {
-                 'overrides': ['execute'],
-                 'invokes': ['receiver_method']
-             },
-             'invoker': {
-                 'has': ['add_command', 'invoke']
-             },
-             'add_command': {
-                 'parameterOfType': ['command']
-             },
-             'invoke': {
-                 'invokes': ['execute']
-             }
-         }),
-    'interpreter':
-        ({
-             'expression': Interface(),
-             'interpret': AbstractMethod(),
-             'context': Class(),
-             'terminal': Class(),
-             'nonterminal': Class(),
-             'child_field': Field(),
-             'nonterminal_interpret': Method()
-         },
-         {
-             'expression': {
-                 'has': ['interpret']
-             },
-             'interpret': {
-                 'parameterOfType': ['context']
-             },
-             'terminal': {
-                 'implements': ['expression']
-             },
-             'nonterminal': {
-                 'implements': ['expression'],
-                 'has': ['child_field', 'nonterminal_interpret']
-             },
-             'child_field': {
-                 'isOfType': ['expression']
-             },
-             'nonterminal_interpret': {
-                 'overrides': ['interpret'],
-                 'invokes': ['interpret']
-             }
-         }),
-    'iterator':
-        ({
-             'iterator': Interface(),
-             'has_next': AbstractMethod(),
-             'next_item': AbstractMethod(),
-             'aggregate': Interface(),
-             'create_iterator': AbstractMethod(),
-             'concrete_iterator': Class(),
-             'concrete_aggregate': Class(),
-             'concrete_create_iterator': Method()
-         },
-         {
-             'iterator': {
-                 'has': ['has_next', 'next_item']
-             },
-             'aggregate': {
-                 'has': ['create_iterator']
-             },
-             'create_iterator': {
-                 'hasReturnType': ['iterator']
-             },
-             'concrete_iterator': {
-                 'implements': ['iterator']
-             },
-             'concrete_aggregate': {
-                 'implements': ['aggregate'],
-                 'has': ['concrete_create_iterator']
-             },
-             'concrete_create_iterator': {
-                 'overrides': ['create_iterator'],
-                 'instantiates': ['concrete_iterator']
-             }
-         }),
-    'mediator':
-        ({
-             'mediator': Interface(),
-             'relay': AbstractMethod(),
-             'colleague': AbstractClass(),
-             'mediator_field': Field(),
-             'send': Method(),
-             'receive': AbstractMethod(),
-             'concrete_mediator': Class(),
-             'concrete_relay': Method(),
-             'concrete_colleague': Class()
-         },
-         {
-             'mediator': {
-                 'has': ['relay']
-             },
-             'relay': {
-                 'parameterOfType': ['colleague']
-             },
-             'colleague': {
-                 'has': ['mediator_field', 'send', 'receive']
-             },
-             'mediator_field': {
-                 'isOfType': ['mediator']
-             },
-             'send': {
-                 'invokes': ['relay']
-             },
-             'concrete_mediator': {
-                 'implements': ['mediator'],
-                 'has': ['concrete_relay']
-             },
-             'concrete_relay': {
-                 'overrides': ['relay'],
-                 'invokes': ['receive']
-             },
-             'concrete_colleague': {
-                 'extends': ['colleague']
-             }
-         }),
-    'memento':
-        ({
-             'originator': Class(),
-             'originator_state': Field(),
-             'save': Method(),
-             'restore': Method(),
-             'memento': Class(),
-             'state': Field(),
-             'get_state': Method(),
-             'caretaker': Class(),
-             'store': Method(),
-             'retrieve': Method()
-         },
-         {
-             'originator': {
-                 'has': ['originator_state', 'save', 'restore']
-             },
-             'save': {
-                 'hasReturnType': ['memento'],
-                 'instantiates': ['memento']
-             },
-             'restore': {
-                 'parameterOfType': ['memento'],
-                 'invokes': ['get_state'],
-                 'assigns': ['originator_state']
-             },
-             'memento': {
-                 'has': ['state', 'get_state']
-             },
-             'get_state': {
-                 'returns': ['state']
-             },
-             'caretaker': {
-                 'has': ['store', 'retrieve']
-             },
-             'store': {
-                 'parameterOfType': ['memento']
-             },
-             'retrieve': {
-                 'hasReturnType': ['memento']
-             }
-         }),
-    'observer':
-        ({
-             'subject': Class(),
-             'observers': Field(),
-             'attach': Method(),
-             'notify': Method(),
-             'observer': Interface(),
-             'update': AbstractMethod(),
-             'concrete_observer': Class()
-         },
-         {
-             'subject': {
-                 'has': ['observers', 'attach', 'notify']
-             },
-             'observers': {
-                 'isCollectionOf': ['observer']
-             },
-             'attach': {
-                 'parameterOfType': ['observer']
-             },
-             'notify': {
-                 'invokes': ['update']
-             },
-             'observer': {
-                 'has': ['update']
-             },
-             'concrete_observer': {
-                 'implements': ['observer']
-             }
-         },
-         # A class that holds others of its own kind is a composite
-         {
-             'subject': {
-                 'implements': ['observer']
-             }
-         }),
-    'state':
-        ({
-             'context': Class(),
-             'state_field': Field(),
-             'set_state': Method(),
-             'request': Method(),
-             'state': Interface(),
-             'handle': AbstractMethod(),
-             'concrete_state': Class(),
-             'transition': Method(),
-             'next_state': Class()
-         },
-         {
-             'context': {
-                 'has': ['state_field', 'set_state', 'request']
-             },
-             'state_field': {
-                 'isOfType': ['state']
-             },
-             'set_state': {
-                 'parameterOfType': ['state'],
-                 'assigns': ['state_field']
-             },
-             'request': {
-                 'invokes': ['handle']
-             },
-             'state': {
-                 'has': ['handle']
-             },
-             'handle': {
-                 'parameterOfType': ['context']
-             },
-             'concrete_state': {
-                 'implements': ['state']
-             },
-             'transition': {
-                 'instantiates': ['next_state']
-             },
-             'next_state': {
-                 'implements': ['state']
-             }
-         }),
-    'visitor':
-        ({
-             'element': Interface(),
-             'accept': AbstractMethod(),
-             'visitor': Interface(),
-             'visit_a': AbstractMethod(),
-             'visit_b': AbstractMethod(),
-             'concrete_element_a': Class(),
-             'concrete_element_b': Class(),
-             'accept_a': Method(),
-             'accept_b': Method(),
-             'concrete_visitor': Class()
-         },
-         {
-             'element': {
-                 'has': ['accept']
-             },
-             'accept': {
-                 'parameterOfType': ['visitor']
-             },
-             'visitor': {
-                 'has': ['visit_a', 'visit_b']
-             },
-             'visit_a': {
-                 'parameterOfType': ['concrete_element_a']
-             },
-             'visit_b': {
-                 'parameterOfType': ['concrete_element_b']
-             },
-             'concrete_element_a': {
-                 'implements': ['element'],
-                 'has': ['accept_a']
-             },
-             'concrete_element_b': {
-                 'implements': ['element'],
-                 'has': ['accept_b']
-             },
-             'accept_a': {
-                 'overrides': ['accept'],
-                 'invokes': ['visit_a']
-             },
-             'accept_b': {
-                 'overrides': ['accept'],
-                 'invokes': ['visit_b']
-             },
-             'concrete_visitor': {
-                 'implements': ['visitor']
-             }
-         })}
 
-# The patterns above are general, and are used for every language. A
-# pattern is only redefined for a language here when the general
-# definition cannot apply to it.
-LANGUAGE_OVERRIDES = {
-    # Python has no private constructors and its types are optional, so
-    # a Singleton is a class holding a private class attribute that is
-    # reached through a static method, a class method or __new__
-    ('singleton', 'python'):
-        ({
-             'singleton': Class(),
-             'private instance': Field(
-                 info={'modifiers': {'private', 'static'}}),
-             'get_instance': Method(info={'modifiers': {'static'}})
-         },
-         {
-             'singleton': {
-                 'has': ['private instance', 'get_instance']
-             },
-             'private instance': {
-                 'instantiates': ['singleton']
-             },
-             'get_instance': {
-                 'returns': ['private instance']
-             }
-         })}
+class Role:
+    """A role in a pattern, written much as the declaration that fills it
+    would be: with its name, then the roles of its members, then its
+    relations to other roles, such as implements='strategy'. The relations
+    that it must not have are given as never."""
+    entity_type = None
+
+    def __init__(self, name, *members, modifiers=(), never=None,
+                 **relations):
+        never = never or {}
+        unknown = (set(relations) | set(never)) - RELATIONS
+        if unknown:
+            raise TypeError(f'Unknown relations for {name}: {unknown}')
+        self.name = name
+        self.members = members
+        self.modifiers = set(modifiers)
+        self.relations = relations
+        self.never = never
+
+
+class Class(Role):
+    entity_type = er_classes.Class
+
+
+class AbstractClass(Role):
+    entity_type = er_classes.AbstractClass
+
+
+class Interface(Role):
+    entity_type = er_classes.Interface
+
+
+class Constructor(Role):
+    entity_type = er_classes.Constructor
+
+
+class Method(Role):
+    entity_type = er_classes.Method
+
+
+class AbstractMethod(Role):
+    entity_type = er_classes.AbstractMethod
+
+
+class Field(Role):
+    entity_type = er_classes.Field
+
+
+class Pattern:
+    """A pattern, written as a skeleton of the code that implements it. It
+    is made up of the entity that fills each of its roles, the relations
+    that there must be between the roles, and the relations that there must
+    not be. A role has its members, and the first role is the one that each
+    instance of the pattern is found from."""
+
+    def __init__(self, *roles):
+        self.roles = {}
+        self.relations = {}
+        self.forbidden = {}
+        for role in roles:
+            self.add(role)
+
+        for relations in (self.relations, self.forbidden):
+            unknown = {target for role_relations in relations.values()
+                       for targets in role_relations.values()
+                       for target in targets} - set(self.roles)
+            if unknown:
+                raise ValueError(f'Relations with unknown roles: {unknown}')
+
+    def add(self, role):
+        if role.name in self.roles:
+            raise ValueError(f'Two roles are named {role.name}')
+        info = {'modifiers': role.modifiers} if role.modifiers else None
+        self.roles[role.name] = role.entity_type(info=info)
+
+        relations = {relation: as_list(targets)
+                     for relation, targets in role.relations.items()}
+        if role.members:
+            relations['has'] = [member.name for member in role.members]
+        if relations:
+            self.relations[role.name] = relations
+        if role.never:
+            self.forbidden[role.name] = {
+                relation: as_list(targets)
+                for relation, targets in role.never.items()}
+
+        for member in role.members:
+            self.add(member)
+
+
+# A class with a single instance, which is reached through the class itself
+SINGLETON = Pattern(
+    Class('singleton',
+          Constructor('private constructor', modifiers={'private'}),
+          Field('private instance', modifiers={'private'},
+                isOfType='singleton', instantiates='singleton'),
+          Method('get_instance', hasReturnType='singleton',
+                 returns='private instance')))
+
+# A method that sets out the steps of an algorithm, leaving some of them for
+# subclasses to fill in
+TEMPLATE_METHOD = Pattern(
+    AbstractClass('template',
+                  AbstractMethod('abstract method'),
+                  Method('template method', invokes='abstract method')),
+    Class('subclass',
+          Method('override'),
+          extends='template'))
+
+# A family of interchangeable algorithms behind one interface, held by the
+# class that uses them
+STRATEGY = Pattern(
+    Class('context',
+          Field('context_field', isOfType='strategy'),
+          Method('context_method', invokes='strategy_method'),
+          # A class that implements the interface it holds is combining or
+          # wrapping its own kind, as a composite or a decorator does
+          never={'implements': 'strategy'}),
+    Interface('strategy',
+              AbstractMethod('strategy_method')),
+    Class('concrete_strategy', implements='strategy'),
+    Method('concrete_method', overrides='strategy_method'))
+
+# Creational patterns
+
+# A factory interface for making families of related products, with a factory
+# for each family
+ABSTRACT_FACTORY = Pattern(
+    Interface('factory',
+              AbstractMethod('create_a', hasReturnType='product_a'),
+              AbstractMethod('create_b', hasReturnType='product_b')),
+    Interface('product_a'),
+    Interface('product_b'),
+    Class('concrete_factory',
+          Method('concrete_create_a', overrides='create_a',
+                 instantiates='concrete_product_a'),
+          Method('concrete_create_b', overrides='create_b',
+                 instantiates='concrete_product_b'),
+          implements='factory'),
+    Class('concrete_product_a', implements='product_a'),
+    Class('concrete_product_b', implements='product_b'))
+
+# A creator that leaves the class of the product it uses for its subclasses to
+# choose
+FACTORY_METHOD = Pattern(
+    AbstractClass('creator',
+                  AbstractMethod('factory_method', hasReturnType='product'),
+                  Method('operation', invokes='factory_method')),
+    Interface('product'),
+    Class('concrete_creator',
+          Method('concrete_factory_method', overrides='factory_method',
+                 instantiates='concrete_product'),
+          extends='creator'),
+    Class('concrete_product', implements='product'))
+
+# A director that puts a product together step by step, through a builder
+# interface
+BUILDER = Pattern(
+    Class('director',
+          Field('director_field', isOfType='builder'),
+          Method('construct', invokes=['build_step', 'get_result'])),
+    Interface('builder',
+              AbstractMethod('build_step'),
+              AbstractMethod('get_result', hasReturnType='product')),
+    Class('product',
+          Method('product_method')),
+    Class('concrete_builder',
+          Field('product_field', isOfType='product', instantiates='product'),
+          Method('concrete_step', overrides='build_step',
+                 invokes='product_method'),
+          Method('concrete_get_result', overrides='get_result',
+                 returns='product_field'),
+          implements='builder'))
+
+# New objects made by copying an existing one
+PROTOTYPE = Pattern(
+    Interface('prototype',
+              AbstractMethod('copy', hasReturnType='prototype')),
+    Class('concrete_prototype',
+          Method('concrete_copy', overrides='copy',
+                 instantiates='concrete_prototype'),
+          implements='prototype'),
+    Method('client', invokes='copy'))
+
+# Structural patterns
+
+# A class that gives another class the interface that is expected of it
+ADAPTER = Pattern(
+    Interface('target',
+              AbstractMethod('target_method')),
+    Class('adapter',
+          Field('adaptee_field', isOfType='adaptee'),
+          Method('adapter_method', overrides='target_method',
+                 invokes='adaptee_method'),
+          implements='target'),
+    Class('adaptee',
+          Method('adaptee_method'),
+          # A class that already implements the target has no need of an
+          # adapter, and one that stands in for it is a proxy
+          never={'implements': 'target'}))
+
+# An abstraction that holds its implementation behind an interface, so that the
+# two can vary separately
+BRIDGE = Pattern(
+    AbstractClass('abstraction',
+                  Field('implementor_field', isOfType='implementor'),
+                  AbstractMethod('abstract_operation')),
+    Interface('implementor',
+              AbstractMethod('implementor_method')),
+    Class('refined_abstraction',
+          Method('refined_operation', overrides='abstract_operation',
+                 invokes='implementor_method'),
+          extends='abstraction'),
+    Class('concrete_implementor', implements='implementor'))
+
+# A component that holds others of its own kind, so that a group can be treated
+# as one
+COMPOSITE = Pattern(
+    Interface('component',
+              AbstractMethod('operation')),
+    Class('leaf', implements='component'),
+    Class('composite',
+          Field('children', isCollectionOf='component'),
+          Method('add', parameterOfType='component'),
+          Method('composite_operation', overrides='operation',
+                 invokes='operation'),
+          implements='component'))
+
+# A wrapper that adds behaviour to a component while keeping its interface
+DECORATOR = Pattern(
+    Interface('component',
+              AbstractMethod('operation')),
+    Class('concrete_component', implements='component'),
+    AbstractClass('decorator',
+                  Field('wrapped', isOfType='component'),
+                  implements='component'),
+    Class('concrete_decorator',
+          Method('decorated_operation', overrides='operation',
+                 invokes='operation'),
+          extends='decorator'))
+
+# One class that gives a simple way into several subsystem classes
+FACADE = Pattern(
+    Class('facade',
+          Field('subsystem_field_a', isOfType='subsystem_a'),
+          Field('subsystem_field_b', isOfType='subsystem_b'),
+          Method('facade_method',
+                 invokes=['subsystem_method_a', 'subsystem_method_b'])),
+    Class('subsystem_a',
+          Method('subsystem_method_a')),
+    Class('subsystem_b',
+          Method('subsystem_method_b')))
+
+# Shared objects handed out by a factory that keeps a pool of them
+FLYWEIGHT = Pattern(
+    Interface('flyweight',
+              AbstractMethod('operation')),
+    Class('concrete_flyweight',
+          Field('intrinsic_state'),
+          implements='flyweight'),
+    Class('flyweight_factory',
+          Field('pool', isCollectionOf='flyweight'),
+          Method('get_flyweight', hasReturnType='flyweight',
+                 instantiates='concrete_flyweight')))
+
+# A stand-in that controls access to the real object behind the same interface
+PROXY = Pattern(
+    Interface('subject',
+              AbstractMethod('subject_method')),
+    Class('real_subject',
+          Method('real_method', overrides='subject_method'),
+          implements='subject'),
+    Class('proxy',
+          Field('real_field', isOfType='real_subject'),
+          Method('proxy_method', overrides='subject_method',
+                 invokes='real_method'),
+          implements='subject'))
+
+# Behavioural patterns
+
+# Handlers linked in a chain, each passing a request on to the next
+CHAIN_OF_RESPONSIBILITY = Pattern(
+    AbstractClass('handler',
+                  Field('next_handler', isOfType='handler'),
+                  # The request is passed along the chain by handle invoking
+                  # itself on the next handler
+                  Method('handle', invokes=['handle', 'abstract_step']),
+                  AbstractMethod('abstract_step')),
+    Class('concrete_handler',
+          Method('concrete_step', overrides='abstract_step'),
+          extends='handler'))
+
+# A request held as an object, which an invoker runs without knowing what it
+# does
+COMMAND = Pattern(
+    Interface('command',
+              AbstractMethod('execute')),
+    Class('concrete_command',
+          Field('receiver_field', isOfType='receiver'),
+          Method('concrete_execute', overrides='execute',
+                 invokes='receiver_method'),
+          implements='command'),
+    Class('receiver',
+          Method('receiver_method')),
+    Class('invoker',
+          Method('add_command', parameterOfType='command'),
+          Method('invoke', invokes='execute')))
+
+# A grammar whose rules are classes that interpret themselves against a context
+INTERPRETER = Pattern(
+    Interface('expression',
+              AbstractMethod('interpret', parameterOfType='context')),
+    Class('context'),
+    Class('terminal', implements='expression'),
+    Class('nonterminal',
+          Field('child_field', isOfType='expression'),
+          Method('nonterminal_interpret', overrides='interpret',
+                 invokes='interpret'),
+          implements='expression'))
+
+# An object that steps through a collection without showing how the collection
+# is held
+ITERATOR = Pattern(
+    Interface('iterator',
+              AbstractMethod('has_next'),
+              AbstractMethod('next_item')),
+    Interface('aggregate',
+              AbstractMethod('create_iterator', hasReturnType='iterator')),
+    Class('concrete_iterator', implements='iterator'),
+    Class('concrete_aggregate',
+          Method('concrete_create_iterator', overrides='create_iterator',
+                 instantiates='concrete_iterator'),
+          implements='aggregate'))
+
+# Colleagues that talk through a mediator rather than to each other
+MEDIATOR = Pattern(
+    Interface('mediator',
+              AbstractMethod('relay', parameterOfType='colleague')),
+    AbstractClass('colleague',
+                  Field('mediator_field', isOfType='mediator'),
+                  Method('send', invokes='relay'),
+                  AbstractMethod('receive')),
+    Class('concrete_mediator',
+          Method('concrete_relay', overrides='relay', invokes='receive'),
+          implements='mediator'),
+    Class('concrete_colleague', extends='colleague'))
+
+# An object's state saved outside it, so that it can be put back later
+MEMENTO = Pattern(
+    Class('originator',
+          Field('originator_state'),
+          Method('save', hasReturnType='memento', instantiates='memento'),
+          Method('restore', parameterOfType='memento', invokes='get_state',
+                 assigns='originator_state')),
+    Class('memento',
+          Field('state'),
+          Method('get_state', returns='state')),
+    Class('caretaker',
+          Method('store', parameterOfType='memento'),
+          Method('retrieve', hasReturnType='memento')))
+
+# A subject that tells its observers when it changes
+OBSERVER = Pattern(
+    Class('subject',
+          Field('observers', isCollectionOf='observer'),
+          Method('attach', parameterOfType='observer'),
+          Method('notify', invokes='update'),
+          # A class that holds others of its own kind is a composite
+          never={'implements': 'observer'}),
+    Interface('observer',
+              AbstractMethod('update')),
+    Class('concrete_observer', implements='observer'))
+
+# A context that leaves its behaviour to an object for the state it is in,
+# which changes as it goes
+STATE = Pattern(
+    Class('context',
+          Field('state_field', isOfType='state'),
+          Method('set_state', parameterOfType='state', assigns='state_field'),
+          Method('request', invokes='handle')),
+    Interface('state',
+              AbstractMethod('handle', parameterOfType='context')),
+    Class('concrete_state', implements='state'),
+    Method('transition', instantiates='next_state'),
+    Class('next_state', implements='state'))
+
+# An operation over a set of element classes, held in a visitor that each
+# element accepts
+VISITOR = Pattern(
+    Interface('element',
+              AbstractMethod('accept', parameterOfType='visitor')),
+    Interface('visitor',
+              AbstractMethod('visit_a', parameterOfType='concrete_element_a'),
+              AbstractMethod('visit_b', parameterOfType='concrete_element_b')),
+    Class('concrete_element_a',
+          Method('accept_a', overrides='accept', invokes='visit_a'),
+          implements='element'),
+    Class('concrete_element_b',
+          Method('accept_b', overrides='accept', invokes='visit_b'),
+          implements='element'),
+    Class('concrete_visitor', implements='visitor'))
+
+# Python has no private constructors and its types are optional, so a Singleton
+# is a class holding a private class attribute that is reached through a static
+# method, a class method or __new__
+PYTHON_SINGLETON = Pattern(
+    Class('singleton',
+          Field('private instance', modifiers={'private', 'static'},
+                instantiates='singleton'),
+          Method('get_instance', modifiers={'static'},
+                 returns='private instance')))
+
+PATTERNS = {'singleton': SINGLETON,
+            'templateMethod': TEMPLATE_METHOD,
+            'strategy': STRATEGY,
+            'abstractFactory': ABSTRACT_FACTORY,
+            'factoryMethod': FACTORY_METHOD,
+            'builder': BUILDER,
+            'prototype': PROTOTYPE,
+            'adapter': ADAPTER,
+            'bridge': BRIDGE,
+            'composite': COMPOSITE,
+            'decorator': DECORATOR,
+            'facade': FACADE,
+            'flyweight': FLYWEIGHT,
+            'proxy': PROXY,
+            'chainOfResponsibility': CHAIN_OF_RESPONSIBILITY,
+            'command': COMMAND,
+            'interpreter': INTERPRETER,
+            'iterator': ITERATOR,
+            'mediator': MEDIATOR,
+            'memento': MEMENTO,
+            'observer': OBSERVER,
+            'state': STATE,
+            'visitor': VISITOR}
+
+# The patterns above are general, and are used for every language. A pattern is
+# only redefined for a language here when the general definition cannot apply
+# to it.
+LANGUAGE_OVERRIDES = {('singleton', 'python'): PYTHON_SINGLETON}
 
 
 def pattern_library(pattern, language=None):
-    """Returns the definition of a pattern: the entity that fills each of
-    its roles, the relations that there must be between the roles, and the
-    relations that there must not be."""
-    if (pattern, language) in LANGUAGE_OVERRIDES:
-        definition = LANGUAGE_OVERRIDES[(pattern, language)]
-    elif pattern in PATTERNS:
-        definition = PATTERNS[pattern]
-    else:
-        return None, None, None
-
-    entity_dict, relation_dict, *forbidden = definition
-    return entity_dict, relation_dict, forbidden[0] if forbidden else {}
+    """Returns the definition of a pattern for a language, or None if there
+    is no pattern of that name."""
+    return LANGUAGE_OVERRIDES.get((pattern, language), PATTERNS.get(pattern))

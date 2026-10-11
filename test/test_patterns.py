@@ -3,6 +3,9 @@ import unittest
 
 from src.entity_relations.design_pattern import DesignPattern
 from src.entity_relations.java_graph import build_java_graph
+from src.entity_relations.pattern_library import (
+    PATTERNS, AbstractMethod, Class, Field, Interface, Method, Pattern,
+    pattern_library)
 from src.project.review_file import ReviewFile
 from src.project.review_project import ReviewProject
 from src.project.spec import Spec
@@ -454,6 +457,64 @@ class TestDesignPattern(unittest.TestCase):
     def test_unknown_pattern_is_rejected(self):
         with self.assertRaises(ValueError):
             DesignPattern('notAPattern')
+
+
+class TestPatternLibrary(unittest.TestCase):
+    def test_skeleton_gives_roles_and_relations(self):
+        pattern = Pattern(
+            Class('context',
+                  Field('held', modifiers={'private'}, isOfType='strategy'),
+                  Method('run', invokes=['algorithm', 'helper']),
+                  Method('helper'),
+                  never={'implements': 'strategy'}),
+            Interface('strategy',
+                      AbstractMethod('algorithm')),
+            Class('concrete', implements='strategy'))
+
+        # Each role is followed by its members, and has them
+        self.assertEqual(list(pattern.roles),
+                         ['context', 'held', 'run', 'helper', 'strategy',
+                          'algorithm', 'concrete'])
+        self.assertEqual({role: entity.type
+                          for role, entity in pattern.roles.items()},
+                         {'context': 'class', 'held': 'field',
+                          'run': 'method', 'helper': 'method',
+                          'strategy': 'interface',
+                          'algorithm': 'abstractMethod',
+                          'concrete': 'class'})
+        self.assertEqual(pattern.roles['held'].info,
+                         {'modifiers': {'private'}})
+        self.assertIsNone(pattern.roles['run'].info)
+        self.assertEqual(pattern.relations, {
+            'context': {'has': ['held', 'run', 'helper']},
+            'held': {'isOfType': ['strategy']},
+            'run': {'invokes': ['algorithm', 'helper']},
+            'strategy': {'has': ['algorithm']},
+            'concrete': {'implements': ['strategy']}})
+        self.assertEqual(pattern.forbidden,
+                         {'context': {'implements': ['strategy']}})
+
+    def test_mistakes_in_a_skeleton_are_rejected(self):
+        with self.assertRaises(TypeError):
+            Class('context', implement='strategy')
+        with self.assertRaises(TypeError):
+            Class('context', never={'implement': 'strategy'})
+        with self.assertRaises(ValueError):
+            Pattern(Class('context', implements='missing'))
+        with self.assertRaises(ValueError):
+            Pattern(Class('context', never={'implements': 'missing'}))
+        with self.assertRaises(ValueError):
+            Pattern(Class('context'), Interface('context'))
+
+    def test_every_pattern_is_in_the_library(self):
+        self.assertEqual(len(PATTERNS), 23)
+        for name in PATTERNS:
+            with self.subTest(pattern=name):
+                self.assertIs(pattern_library(name), PATTERNS[name])
+                self.assertIs(pattern_library(name, 'java'), PATTERNS[name])
+        self.assertIsNot(pattern_library('singleton', 'python'),
+                         PATTERNS['singleton'])
+        self.assertIsNone(pattern_library('notAPattern'))
 
 
 class TestErGraph(unittest.TestCase):

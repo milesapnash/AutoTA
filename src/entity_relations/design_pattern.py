@@ -256,11 +256,15 @@ class RoleSearch:
 class DesignPattern:
     def __init__(self, pattern='singleton'):
         self.pattern = pattern
-        (self.entity_dict, self.relation_dict,
-         self.forbidden_dict) = pattern_library(pattern)
-
-        if self.entity_dict is None:
+        definition = pattern_library(pattern)
+        if definition is None:
             raise ValueError(f'Unknown design pattern: {pattern}')
+        self.use(definition)
+
+    def use(self, definition):
+        self.entity_dict = definition.roles
+        self.relation_dict = definition.relations
+        self.forbidden_dict = definition.forbidden
 
     def connected_roles(self, without):
         """Returns the roles still related to the first role, directly or
@@ -285,8 +289,7 @@ class DesignPattern:
         way to an entity of the right type, so that an instance is almost
         complete when what should fill the role is there but falls short.
         """
-        (self.entity_dict, self.relation_dict,
-         self.forbidden_dict) = pattern_library(self.pattern, language)
+        self.use(pattern_library(self.pattern, language))
         entities_by_type = {}
         for entity in graph['entities']:
             entities_by_type.setdefault(entity.type, []).append(entity)

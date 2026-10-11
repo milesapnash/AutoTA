@@ -77,7 +77,8 @@ def is_field(node, in_method):
 
 def classify(tree):
     """Yields a (kind, node, owner) triple for every node in the tree, where
-    owner is the class that a constructor, method or field belongs to.
+    owner is the class that a constructor, method, field or nested class
+    belongs to.
     Python's AST does not distinguish constructors from methods or fields
     from local variables, so a node's kind depends on where it appears."""
     seen_fields = set()
@@ -88,6 +89,8 @@ def classify(tree):
         child_owner, child_in_method = owner, in_method
         if isinstance(node, ast.ClassDef):
             kind = class_kind(node)
+            # A nested class belongs to the class it is declared within
+            member_of = owner
             child_owner, child_in_method = node, False
         elif isinstance(node, FUNCTIONS):
             is_member = owner is not None and not in_method

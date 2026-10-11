@@ -12,8 +12,8 @@ def gpt_api_request(project_files, project_feedback):
     if not api_key:
         return "No API key provided"
 
-    feedback = "".join(project_feedback)
-    contents = "".join(
+    feedback = "\n".join(project_feedback)
+    contents = "\n".join(
         [file.file_name + ': ' + file.contents for file in project_files])
     try:
         client = OpenAI(api_key=api_key)

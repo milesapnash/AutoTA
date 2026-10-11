@@ -1,7 +1,8 @@
 import ast
 from collections import namedtuple
 
-import javalang
+import tree_sitter_java
+from tree_sitter import Language as Grammar, Parser
 
 from src.entity_relations.java_graph import build_java_graph
 from src.entity_relations.python_graph import build_python_graph
@@ -12,9 +13,12 @@ Language = namedtuple('Language',
                       ['extension', 'parse', 'filter', 'build_graph'])
 
 
+JAVA_GRAMMAR = Grammar(tree_sitter_java.language())
+
+
 def parse_java(contents):
-    tokens = list(javalang.tokenizer.tokenize(contents))
-    return javalang.parser.Parser(tokens).parse()
+    # A file with syntax errors is still parsed, as far as it can be
+    return Parser(JAVA_GRAMMAR).parse(contents.encode('utf-8')).root_node
 
 
 # To support another language, register its file extension, parser, filter

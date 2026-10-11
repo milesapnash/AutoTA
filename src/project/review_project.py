@@ -6,6 +6,7 @@ from src.project.review_file import ReviewFile
 from src.project.utils import create_feedback_pdf, gpt_api_request
 from src.rules.encapsulation_rule import EncapsulationRule
 from src.rules.identifier_rule import IdentifierRule
+from src.scope import in_scope, walk_source
 
 
 class ReviewProject:
@@ -15,9 +16,11 @@ class ReviewProject:
         self.spec = spec
         self.files = []
         self.summary = None
+        # The instances found of each design pattern in the spec
+        self.pattern_matches = {}
 
         source_files = [(root, file_name)
-                        for root, _, dir_files in os.walk(directory)
+                        for root, dir_files in walk_source(directory)
                         for file_name in dir_files
                         if language_of(file_name) is not None]
         if not source_files:
@@ -38,25 +41,35 @@ class ReviewProject:
         if er_scope is None:
             self.er_graph = self.build_er_graph(self.files)
         else:
-            scope_dir = os.path.normpath(er_scope)
-            scoped_files = [file for file in self.files if
-                            os.path.commonpath(
-                                [os.path.normpath(file.relative_path),
-                                 scope_dir]) == scope_dir]
+            scoped_files = [file for file in self.files
+                            if in_scope(file.relative_path, er_scope)]
+            if not scoped_files:
+                raise ValueError(
+                    f'No source files found in the scope {er_scope} of '
+                    f'{directory}')
             self.er_graph = self.build_er_graph(scoped_files)
 
         self.feedback = self.get_feedback()
 
     def get_feedback(self):
+        feedback = self.unreviewed_files()
         if self.spec is None:
-            return []
-        feedback = []
+            return feedback
         if self.spec.rules is not None:
-            feedback = self.apply_rules(self.spec.rules)
+            feedback.extend(self.apply_rules(self.spec.rules))
         if self.spec.patterns is not None:
             feedback.extend(self.find_patterns(self.spec.patterns))
 
         return feedback
+
+    def unreviewed_files(self):
+        """Returns feedback naming the files that could not be reviewed,
+        which the rest of the project is reviewed without."""
+        unreviewed = [f'File: {file.file_name}: {file.error}'
+                      for file in self.files if file.error is not None]
+        if not unreviewed:
+            return []
+        return ['FILES NOT REVIEWED:'] + unreviewed + ['']
 
     def apply_rules(self, rules):
         complete_feedback = ["CODE STYLE RULES:"]
@@ -64,6 +77,11 @@ class ReviewProject:
             if not rule.applies_to(self.language):
                 continue
             complete_feedback.append(str(rule) + ':')
+            if not any(rule.file_filter(file) is not None
+                       for file in self.files):
+                complete_feedback.append(
+                    f'No files were found within {rule.scope}')
+                continue
             rule_feedback = []
             for file in self.files:
                 feedback = rule.apply(file)
@@ -90,14 +108,16 @@ class ReviewProject:
     def find_patterns(self, patterns):
         pattern_feedback = ["DESIGN PATTERNS:"]
         for pattern in patterns:
+            matches = pattern.find_matches(self.er_graph, self.language)
+            self.pattern_matches[pattern.pattern] = matches
             pattern_feedback.append('-' + pattern.pattern + '\n' +
-                                    pattern.find_potential_isomorphisms(
-                                        self.er_graph, self.language))
+                                    pattern.describe(matches))
 
         return pattern_feedback
 
     def build_er_graph(self, files):
-        return LANGUAGES[self.language].build_graph(files)
+        return LANGUAGES[self.language].build_graph(
+            [file for file in files if file.ast is not None])
 
     def print_feedback(self):
         if not self.feedback:

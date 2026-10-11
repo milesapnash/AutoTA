@@ -1,4 +1,4 @@
-import os
+from src.scope import in_scope
 
 
 class Rule:
@@ -11,10 +11,7 @@ class Rule:
 
         scope_type, scope = self.scope
         if scope_type == 'dir':
-            directory_path = os.path.normpath(scope)
-            if os.path.commonpath(
-                    [os.path.normpath(file.relative_path),
-                     directory_path]) == directory_path:
+            if in_scope(file.relative_path, scope):
                 return file.ast
             else:
                 return None

@@ -1,3 +1,13 @@
+# The relation that each relation is recorded as on the entity it leads to
+INVERSES = {'has': 'composes', 'extends': 'extendedBy',
+            'implements': 'implementedBy', 'instantiates': 'instantiatedBy',
+            'overrides': 'overridenBy', 'invokes': 'invokedBy',
+            'parameterOfType': 'typeOfParameter', 'isOfType': 'isTypeOf',
+            'isCollectionOf': 'isElementTypeOf',
+            'hasReturnType': 'isReturnTypeOf', 'assigns': 'assignedBy',
+            'returns': 'returnedBy'}
+
+
 class Entity:
     types = {'class', 'abstractClass', 'interface', 'constructor', 'method',
              'abstractMethod', 'field'}
@@ -17,7 +27,10 @@ class Entity:
                           'invokes': [], 'invokedBy': [],
                           'parameterOfType': [], 'typeOfParameter': [],
                           'isOfType': [], 'isTypeOf': [],
-                          'hasReturnType': [], 'isReturnTypeOf': []}
+                          'isCollectionOf': [], 'isElementTypeOf': [],
+                          'hasReturnType': [], 'isReturnTypeOf': [],
+                          'assigns': [], 'assignedBy': [],
+                          'returns': [], 'returnedBy': []}
 
     def __str__(self):
         if self.info is None or self.info["name"] is None:
@@ -139,3 +152,24 @@ class Instantiates(Relation):
         super().__init__(class_entity, member_entity, 'instantiates')
         class_entity.relations['instantiates'].append(member_entity)
         member_entity.relations['instantiatedBy'].append(class_entity)
+
+
+class IsCollectionOf(Relation):
+    def __init__(self, class_entity, member_entity):
+        super().__init__(class_entity, member_entity, 'isCollectionOf')
+        class_entity.relations['isCollectionOf'].append(member_entity)
+        member_entity.relations['isElementTypeOf'].append(class_entity)
+
+
+class Assigns(Relation):
+    def __init__(self, class_entity, member_entity):
+        super().__init__(class_entity, member_entity, 'assigns')
+        class_entity.relations['assigns'].append(member_entity)
+        member_entity.relations['assignedBy'].append(class_entity)
+
+
+class Returns(Relation):
+    def __init__(self, class_entity, member_entity):
+        super().__init__(class_entity, member_entity, 'returns')
+        class_entity.relations['returns'].append(member_entity)
+        member_entity.relations['returnedBy'].append(class_entity)

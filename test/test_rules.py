@@ -68,6 +68,66 @@ class TestRules(unittest.TestCase):
 
         self.assertEqual(len(results), 1)
 
+    def test_java_rules_apply_to_file_with_newer_syntax(self):
+        code = """
+        public class Example {
+            public String visible;
+
+            public String describe(Object value) {
+                return switch (value) {
+                    case String text -> text;
+                    default -> "other";
+                };
+            }
+        }
+
+        record Point(int x, int y) {}
+        """
+        file = ReviewFile('./', "", 'example.java', contents=code)
+        results = EncapsulationRule().apply(file)
+
+        self.assertEqual(results, [
+            (3, 'In class Example, the visible field is not private')])
+
+    def test_java_filter_matches_every_node_by_default(self):
+        code = 'class Example { int count; void run() {} }'
+        file = ReviewFile('./', "", 'example.java', contents=code)
+
+        nodes = JavaFilter().get_nodes(file.ast)
+
+        self.assertLessEqual({'class_declaration', 'field_declaration',
+                              'method_declaration'},
+                             {node.type for node in nodes})
+
+    def test_java_filter_rejects_an_unknown_node_class(self):
+        with self.assertRaises(ValueError):
+            JavaFilter(node_class='package')
+
+    def test_java_filter_matches_annotations_and_supertypes(self):
+        code = """
+        @Deprecated
+        public class Example extends Base implements Runnable, Shape {
+            @Override
+            public void run() {}
+
+            public int area() { return 1; }
+        }
+        """
+        file = ReviewFile('./', "", 'example.java', contents=code)
+
+        def names(**criteria):
+            return [JavaFilter.name_of(node) for node in
+                    JavaFilter(**criteria).get_nodes(file.ast)]
+
+        self.assertEqual(names(node_class='method',
+                               node_annotations=['Override']), ['run'])
+        self.assertEqual(names(node_class='method',
+                               node_return_type='int'), ['area'])
+        self.assertEqual(names(node_class='class', node_extends='Base',
+                               node_implements=['Shape']), ['Example'])
+        self.assertEqual(names(node_class='class', node_extends='Other'),
+                         [])
+
     def test_positive_python_encapsulation_rule(self):
         code = """
 class Example:

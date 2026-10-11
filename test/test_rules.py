@@ -89,6 +89,20 @@ class TestRules(unittest.TestCase):
         self.assertEqual(results, [
             (3, 'In class Example, the visible field is not private')])
 
+    def test_java_filter_matches_every_node_by_default(self):
+        code = 'class Example { int count; void run() {} }'
+        file = ReviewFile('./', "", 'example.java', contents=code)
+
+        nodes = JavaFilter().get_nodes(file.ast)
+
+        self.assertLessEqual({'class_declaration', 'field_declaration',
+                              'method_declaration'},
+                             {node.type for node in nodes})
+
+    def test_java_filter_rejects_an_unknown_node_class(self):
+        with self.assertRaises(ValueError):
+            JavaFilter(node_class='package')
+
     def test_java_filter_matches_annotations_and_supertypes(self):
         code = """
         @Deprecated

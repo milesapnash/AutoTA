@@ -83,12 +83,14 @@ def supertype_nodes(node, *clauses):
 
 
 class JavaFilter(Filter):
-    def __init__(self, negatives=None, node_class=None, node_name=None,
+    def __init__(self, negatives=None, node_class='node', node_name=None,
                  node_modifiers=None,
                  node_annotations=None, node_extends=None,
                  node_implements=None,
                  node_type=None, node_return_type=None):
         super().__init__('java')
+        if node_class not in NODE_TYPES:
+            raise ValueError(f'Unknown node class: {node_class}')
 
         self.node_class = node_class
         self.node_name = node_name

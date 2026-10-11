@@ -18,6 +18,11 @@ def check_dict(dict_a, dict_b):
 
 
 def pattern_library(pattern, language=None):
+    """Returns the definition of a pattern: the entity that fills each of
+    its roles, the relations that there must be between the roles, and the
+    relations that there must not be."""
+    # Each pattern is defined by its entities and relations, which may be
+    # followed by the relations that must not hold
     pattern_dict = {
         'singleton':
             ({
@@ -89,6 +94,13 @@ def pattern_library(pattern, language=None):
                  },
                  'concrete_method': {
                      'overrides': ['strategy_method']
+                 }
+             },
+             # A class that implements the interface it holds is combining
+             # or wrapping its own kind, as a composite or a decorator does
+             {
+                 'context': {
+                     'implements': ['strategy']
                  }
              }),
 
@@ -275,6 +287,13 @@ def pattern_library(pattern, language=None):
                  },
                  'adaptee': {
                      'has': ['adaptee_method']
+                 }
+             },
+             # A class that already implements the target has no need of an
+             # adapter, and one that stands in for it is a proxy
+             {
+                 'adaptee': {
+                     'implements': ['target']
                  }
              }),
         'bridge':
@@ -717,6 +736,12 @@ def pattern_library(pattern, language=None):
                  'concrete_observer': {
                      'implements': ['observer']
                  }
+             },
+             # A class that holds others of its own kind is a composite
+             {
+                 'subject': {
+                     'implements': ['observer']
+                 }
              }),
         'state':
             ({
@@ -837,10 +862,24 @@ def pattern_library(pattern, language=None):
              })}
 
     if (pattern, language) in language_overrides:
-        return language_overrides[(pattern, language)]
-    if pattern in pattern_dict.keys():
-        return pattern_dict[pattern]
-    return None, None
+        definition = language_overrides[(pattern, language)]
+    elif pattern in pattern_dict.keys():
+        definition = pattern_dict[pattern]
+    else:
+        return None, None, None
+
+    entity_dict, relation_dict, *forbidden = definition
+    return entity_dict, relation_dict, forbidden[0] if forbidden else {}
+
+
+def role_edges(relation_dict, roles):
+    """Returns each relation between two of the roles, as the role it is
+    from, the relation and the role it leads to."""
+    return [(source, relation, target)
+            for source, relations in relation_dict.items()
+            for relation, targets in relations.items()
+            for target in targets
+            if source in roles and target in roles]
 
 
 # The relation that each relation is recorded as on the entity it leads to
@@ -875,11 +914,12 @@ class Match:
 class RoleSearch:
     """Searches a graph for ways to give a different entity to each role of
     a pattern, so that every relation between two roles holds between the
-    entities given to them. The first role is the anchor: each entity that
-    can fill it is the start of a separate instance of the pattern."""
+    entities given to them, and none of the forbidden relations does. The
+    first role is the anchor: each entity that can fill it is the start of
+    a separate instance of the pattern."""
 
-    def __init__(self, entity_dict, relation_dict, roles, entities_by_type,
-                 expected=None):
+    def __init__(self, entity_dict, relation_dict, forbidden_dict, roles,
+                 entities_by_type, expected=None):
         self.roles = roles
         self.anchor = roles[0]
         self.entity_dict = entity_dict
@@ -887,19 +927,22 @@ class RoleSearch:
         # For some roles, relations that an entity filling the role must
         # have with any entity of a given type
         self.expected = expected or {}
-        self.edges = [(source, relation, target)
-                      for source, relations in relation_dict.items()
-                      for relation, targets in relations.items()
-                      for target in targets
-                      if source in roles and target in roles]
+        self.edges = role_edges(relation_dict, roles)
         # For each role, its relations with the other roles: the relation,
         # the other role, and whether the relation leads to that role
-        self.links = {role: [] for role in roles}
-        for source, relation, target in self.edges:
-            if source != target:
-                self.links[source].append((relation, target, True))
-                self.links[target].append((relation, source, False))
+        self.links = self.links_of(self.edges)
+        # The relations that each role must not have, in the same form
+        self.forbidden_links = self.links_of(
+            role_edges(forbidden_dict, roles))
         self.pools = {}
+
+    def links_of(self, edges):
+        links = {role: [] for role in self.roles}
+        for source, relation, target in edges:
+            if source != target:
+                links[source].append((relation, target, True))
+                links[target].append((relation, source, False))
+        return links
 
     def fits(self, role, entity):
         pattern_entity = self.entity_dict[role]
@@ -996,13 +1039,15 @@ class RoleSearch:
     def consistent(self, role, entity, binding):
         """Checks that an entity could fill a role alongside the entities
         already bound to other roles."""
-        for relation, other, outgoing in self.links[role]:
-            if other not in binding:
-                continue
-            source, target = ((entity, binding[other]) if outgoing
-                              else (binding[other], entity))
-            if target not in source.relations[relation]:
-                return False
+        for links, required in ((self.links, True),
+                                (self.forbidden_links, False)):
+            for relation, other, outgoing in links[role]:
+                if other not in binding:
+                    continue
+                source, target = ((entity, binding[other]) if outgoing
+                                  else (binding[other], entity))
+                if (target in source.relations[relation]) != required:
+                    return False
         return all(entity is not bound for bound in binding.values())
 
     def solve(self, domains, fixed):
@@ -1068,7 +1113,8 @@ class RoleSearch:
 class DesignPattern:
     def __init__(self, pattern='singleton'):
         self.pattern = pattern
-        self.entity_dict, self.relation_dict = pattern_library(pattern)
+        (self.entity_dict, self.relation_dict,
+         self.forbidden_dict) = pattern_library(pattern)
 
         if self.entity_dict is None:
             raise ValueError(f'Unknown design pattern: {pattern}')
@@ -1096,15 +1142,16 @@ class DesignPattern:
         way to an entity of the right type, so that an instance is almost
         complete when what should fill the role is there but falls short.
         """
-        self.entity_dict, self.relation_dict = pattern_library(self.pattern,
-                                                               language)
+        (self.entity_dict, self.relation_dict,
+         self.forbidden_dict) = pattern_library(self.pattern, language)
         entities_by_type = {}
         for entity in graph['entities']:
             entities_by_type.setdefault(entity.type, []).append(entity)
 
         def search(roles, expected=None):
-            return RoleSearch(self.entity_dict, self.relation_dict, roles,
-                              entities_by_type, expected).instances()
+            return RoleSearch(self.entity_dict, self.relation_dict,
+                              self.forbidden_dict, roles, entities_by_type,
+                              expected).instances()
 
         roles = list(self.entity_dict)
         complete = search(roles)
@@ -1113,11 +1160,17 @@ class DesignPattern:
 
         # The role whose absence leaves most of the pattern is reported
         missing, almost = [], []
+        restricted = {role for source, _, target in role_edges(
+            self.forbidden_dict, roles) for role in (source, target)}
         for role in roles[1:]:
             kept = self.connected_roles(without=role)
             # An instance missing most of its roles is not almost complete
             if len(kept) * 2 < len(roles) or (
                     almost and len(roles) - len(kept) >= len(missing)):
+                continue
+            # Nor is one that has a relation it must not have, which leaving
+            # out either of the roles it is between would hide
+            if not restricted <= set(kept):
                 continue
             expected = {}
             for source, relations in self.relation_dict.items():

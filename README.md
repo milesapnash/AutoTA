@@ -31,7 +31,7 @@ Hidden directories, virtual environments, `node_modules` and the output of a bui
 
 The rules and patterns that are checked are set in `src/project/spec.py`.
 
-Each pattern is defined in `src/entity_relations/design_pattern.py` as the classes, methods and fields it needs and the relations between them, such as which method invokes which. `test/pattern_repos` has a small example of every pattern in both languages. Patterns with a similar structure can be reported for the same code: a Command, for example, also has the shape of an Adapter.
+Each pattern is defined in `src/entity_relations/design_pattern.py` as the classes, methods and fields it needs and the relations between them, such as which method invokes which. A definition can also give relations that must not hold: the context of a Strategy, for example, must not implement the strategy it holds. `test/pattern_repos` has a small example of every pattern in both languages. Patterns with a similar structure can be reported for the same code: a Command, for example, also has the shape of an Adapter.
 
 In Python, a leading underscore is treated as private, and types are taken from annotations where they exist. Most patterns depend on types, so they are only found in annotated code.
 

@@ -271,6 +271,35 @@ class TestGangOfFourPatterns(PatternTestCase):
                         f'Found potential instance of {pattern} pattern',
                         feedback)
 
+    def test_pattern_not_found_where_a_forbidden_relation_holds(self):
+        # The real subject of a proxy implements what an adaptee must not,
+        # and a composite and a sequence of expressions are of the kind
+        # that they hold, as a subject and a context must not be
+        cases = [('Proxy', 'adapter'), ('Composite', 'observer'),
+                 ('Interpreter', 'strategy')]
+        for language in ('java', 'python'):
+            for repo, pattern in cases:
+                with self.subTest(language=language, repo=repo,
+                                  pattern=pattern):
+                    feedback = detect(repo, pattern, language)
+
+                    self.assert_not_found(feedback, pattern)
+
+    def test_pattern_found_within_a_pattern_that_contains_it(self):
+        # A builder's director is the context of a strategy, and a command
+        # adapts its receiver
+        cases = [('Builder', 'strategy'), ('Command', 'adapter'),
+                 ('FactoryMethod', 'templateMethod')]
+        for language in ('java', 'python'):
+            for repo, pattern in cases:
+                with self.subTest(language=language, repo=repo,
+                                  pattern=pattern):
+                    feedback = detect(repo, pattern, language)
+
+                    self.assertIn(
+                        f'Found potential instance of {pattern} pattern',
+                        feedback)
+
 
 def find(repo, pattern, language='java'):
     """Returns the instances found of a pattern in a fixture repo."""
@@ -374,6 +403,45 @@ class TestMatches(unittest.TestCase):
         self.assertEqual(matches[0].missing, ['subclass', 'override'])
         self.assertEqual(names(matches[0], 'template'), ['TemplateT'])
         self.assertNotIn('subclass', matches[0].roles)
+
+    def test_forbidden_relation_rules_out_a_match(self):
+        code = """
+        interface Shape { void draw(); }
+        class Circle implements Shape { public void draw() {} }
+        class Canvas {
+            private Shape shape;
+            void paint() { shape.draw(); }
+        }
+        class Border implements Shape {
+            private Shape inner;
+            public void draw() { inner.draw(); }
+        }
+        """
+        graph = build_java_graph([ReviewFile('./', '', 'Example.java',
+                                             contents=code)])
+
+        matches = DesignPattern('strategy').find_matches(graph, 'java')
+
+        # Border holds a shape too, but is one itself
+        self.assertEqual([names(match, 'context') for match in matches],
+                         [['Canvas']])
+        self.assertEqual(sorted(names(matches[0], 'concrete_strategy')),
+                         ['Border', 'Circle'])
+
+    def test_instance_with_a_forbidden_relation_is_not_almost_complete(self):
+        code = """
+        interface Shape { void draw(); }
+        class Circle implements Shape { public void draw() {} }
+        class Border implements Shape {
+            private Shape inner;
+            public void draw() { inner.draw(); }
+        }
+        """
+        graph = build_java_graph([ReviewFile('./', '', 'Example.java',
+                                             contents=code)])
+
+        self.assertEqual(
+            DesignPattern('strategy').find_matches(graph, 'java'), [])
 
     def test_role_related_to_itself(self):
         # The handler's handle method invokes itself on the next handler

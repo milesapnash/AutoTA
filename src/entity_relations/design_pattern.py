@@ -268,17 +268,27 @@ class DesignPattern:
 
     def connected_roles(self, without):
         """Returns the roles still related to the first role, directly or
-        through other roles, when one role is left out."""
-        roles = [role for role in self.entity_dict if role != without]
+        through other roles, when one role is left out. A member of that
+        role is left out with it if all that relates it to the rest of the
+        pattern is what it overrides, as nothing can override without the
+        class that it would be in."""
+        edges = role_edges(self.relation_dict, self.entity_dict)
+        members = self.relation_dict.get(without, {}).get('has', [])
+        left_out = [without] + [
+            member for member in members
+            if all(relation == 'overrides' and source == member
+                   for source, relation, target in edges
+                   if member in (source, target)
+                   and without not in (source, target))]
+
+        roles = [role for role in self.entity_dict if role not in left_out]
         connected = roles[:1]
         for role in connected:
-            for source, relations in self.relation_dict.items():
-                for targets in relations.values():
-                    for target in targets:
-                        for near, far in ((source, target), (target, source)):
-                            if (near == role and far in roles
-                                    and far not in connected):
-                                connected.append(far)
+            for source, _, target in edges:
+                for near, far in ((source, target), (target, source)):
+                    if (near == role and far in roles
+                            and far not in connected):
+                        connected.append(far)
         return [role for role in roles if role in connected]
 
     def find_matches(self, graph, language=None):

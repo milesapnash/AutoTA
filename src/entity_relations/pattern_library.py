@@ -114,7 +114,7 @@ TEMPLATE_METHOD = Pattern(
                   AbstractMethod('abstract method'),
                   Method('template method', invokes='abstract method')),
     Class('subclass',
-          Method('override'),
+          Method('override', overrides='abstract method'),
           extends='template'))
 
 # A family of interchangeable algorithms behind one interface, held by the

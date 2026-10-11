@@ -446,6 +446,25 @@ class TestMatches(unittest.TestCase):
         self.assertEqual(
             DesignPattern('strategy').find_matches(graph, 'java'), [])
 
+    def test_override_is_of_an_abstract_method_of_the_template(self):
+        code = """
+        abstract class Report {
+            void print() { header(); }
+            abstract void header();
+        }
+        class Invoice extends Report {
+            void header() {}
+            void total() {}
+        }
+        """
+        graph = build_java_graph([ReviewFile('./', '', 'Example.java',
+                                             contents=code)])
+
+        matches = DesignPattern('templateMethod').find_matches(graph, 'java')
+
+        # The subclass has another method, which overrides nothing
+        self.assertEqual(names(matches[0], 'override'), ['header'])
+
     def test_role_related_to_itself(self):
         # The handler's handle method invokes itself on the next handler
         matches = find('ChainOfResponsibility', 'chainOfResponsibility')

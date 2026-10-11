@@ -4,6 +4,7 @@ import tempfile
 import unittest
 import warnings
 from contextlib import contextmanager, redirect_stdout
+from unittest import mock
 
 from src.entity_relations.design_pattern import DesignPattern
 from src.filters.java_filter import JavaFilter
@@ -11,6 +12,7 @@ from src.project.feedback_pdf import FeedbackPDF
 from src.project.review_file import ReviewFile
 from src.project.review_project import ReviewProject
 from src.project.spec import Spec, build_spec
+from src.project.utils import gpt_api_request
 from src.rules.encapsulation_rule import EncapsulationRule
 from src.rules.identifier_rule import IdentifierRule
 from src.scope import in_scope
@@ -240,6 +242,21 @@ class TestBadInput(unittest.TestCase):
         # A dash and quotation marks are kept, where Chinese is replaced
         self.assertNotIn('?', pdf.normalize_text('— “”'))
         self.assertEqual(pdf.normalize_text('中文'), '??')
+
+
+class TestSummaryPrompt(unittest.TestCase):
+    def test_feedback_and_files_are_on_separate_lines(self):
+        files = [ReviewFile('./', '', 'A.java', contents='class A {}'),
+                 ReviewFile('./', '', 'B.java', contents='class B {}')]
+
+        with mock.patch.dict(os.environ, {'OPENAI_API_KEY': 'key'}), \
+                mock.patch('src.project.utils.OpenAI') as client, quiet():
+            gpt_api_request(files, ['first line', 'second line'])
+
+        request = client.return_value.chat.completions.create.call_args
+        prompt = request.kwargs['messages'][1]['content']
+        self.assertIn('first line\nsecond line', prompt)
+        self.assertIn('A.java: class A {}\nB.java: class B {}', prompt)
 
 
 class TestExampleTasks(unittest.TestCase):

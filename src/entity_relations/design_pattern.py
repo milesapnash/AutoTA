@@ -1,3 +1,4 @@
+from src.entity_relations.er_classes import INVERSES
 from src.entity_relations.pattern_library import pattern_library
 
 
@@ -23,16 +24,6 @@ def role_edges(relation_dict, roles):
             for relation, targets in relations.items()
             for target in targets
             if source in roles and target in roles]
-
-
-# The relation that each relation is recorded as on the entity it leads to
-INVERSES = {'has': 'composes', 'extends': 'extendedBy',
-            'implements': 'implementedBy', 'instantiates': 'instantiatedBy',
-            'overrides': 'overridenBy', 'invokes': 'invokedBy',
-            'parameterOfType': 'typeOfParameter', 'isOfType': 'isTypeOf',
-            'isCollectionOf': 'isElementTypeOf',
-            'hasReturnType': 'isReturnTypeOf', 'assigns': 'assignedBy',
-            'returns': 'returnedBy'}
 
 
 class Match:

@@ -1,3 +1,13 @@
+# The relation that each relation is recorded as on the entity it leads to
+INVERSES = {'has': 'composes', 'extends': 'extendedBy',
+            'implements': 'implementedBy', 'instantiates': 'instantiatedBy',
+            'overrides': 'overridenBy', 'invokes': 'invokedBy',
+            'parameterOfType': 'typeOfParameter', 'isOfType': 'isTypeOf',
+            'isCollectionOf': 'isElementTypeOf',
+            'hasReturnType': 'isReturnTypeOf', 'assigns': 'assignedBy',
+            'returns': 'returnedBy'}
+
+
 class Entity:
     types = {'class', 'abstractClass', 'interface', 'constructor', 'method',
              'abstractMethod', 'field'}

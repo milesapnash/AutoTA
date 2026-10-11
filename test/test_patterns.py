@@ -2,6 +2,7 @@ import os
 import unittest
 
 from src.entity_relations.design_pattern import DesignPattern
+from src.entity_relations.er_classes import INVERSES, Entity
 from src.entity_relations.java_graph import build_java_graph
 from src.entity_relations.pattern_library import (
     PATTERNS, AbstractMethod, Class, Field, Interface, Method, Pattern,
@@ -512,6 +513,21 @@ class TestPatternLibrary(unittest.TestCase):
             'concrete': {'implements': ['strategy']}})
         self.assertEqual(pattern.forbidden,
                          {'context': {'implements': ['strategy']}})
+
+    def test_relation_is_given_from_the_role_it_starts_at(self):
+        # Each relation is also recorded on the entity it leads to, under a
+        # name that a role cannot be given
+        for inverse in ('implementedBy', 'composes', 'invokedBy'):
+            with self.subTest(relation=inverse):
+                with self.assertRaises(TypeError):
+                    Interface('strategy', **{inverse: 'concrete'})
+                with self.assertRaises(TypeError):
+                    Interface('strategy', never={inverse: 'concrete'})
+
+        relations = Entity().relations
+        self.assertEqual(set(INVERSES) | set(INVERSES.values()),
+                         set(relations))
+        self.assertEqual(len(INVERSES) * 2, len(relations))
 
     def test_mistakes_in_a_skeleton_are_rejected(self):
         with self.assertRaises(TypeError):

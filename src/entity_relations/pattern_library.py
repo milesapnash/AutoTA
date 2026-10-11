@@ -1,7 +1,8 @@
 from src.entity_relations import er_classes
 
-# The relations that an entity in the graph can have with another
-RELATIONS = set(er_classes.Entity().relations)
+# The relations that a role can be given: those that lead from one entity to
+# another, and not the inverse that each is also recorded as
+RELATIONS = set(er_classes.INVERSES)
 
 
 def as_list(targets):

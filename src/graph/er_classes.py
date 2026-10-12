@@ -1,7 +1,7 @@
 # The relation that each relation is recorded as on the entity it leads to
 INVERSES = {'has': 'composes', 'extends': 'extendedBy',
             'implements': 'implementedBy', 'instantiates': 'instantiatedBy',
-            'overrides': 'overridenBy', 'invokes': 'invokedBy',
+            'overrides': 'overriddenBy', 'invokes': 'invokedBy',
             'parameterOfType': 'typeOfParameter', 'isOfType': 'isTypeOf',
             'isCollectionOf': 'isElementTypeOf',
             'hasReturnType': 'isReturnTypeOf', 'assigns': 'assignedBy',
@@ -23,7 +23,7 @@ class Entity:
                           'extends': [], 'extendedBy': [],
                           'implements': [], 'implementedBy': [],
                           'instantiates': [], 'instantiatedBy': [],
-                          'overrides': [], 'overridenBy': [],
+                          'overrides': [], 'overriddenBy': [],
                           'invokes': [], 'invokedBy': [],
                           'parameterOfType': [], 'typeOfParameter': [],
                           'isOfType': [], 'isTypeOf': [],
@@ -144,7 +144,7 @@ class Overrides(Relation):
     def __init__(self, source, target):
         super().__init__(source, target, 'overrides')
         source.relations['overrides'].append(target)
-        target.relations['overridenBy'].append(source)
+        target.relations['overriddenBy'].append(source)
 
 
 class Instantiates(Relation):

@@ -131,7 +131,7 @@ class TestScope(unittest.TestCase):
     def test_rule_scope_is_found_within_a_maven_layout(self):
         write_files(self.directory, MAVEN_PROJECT)
         spec = Spec('scope test',
-                    rules=[EncapsulationRule(scope=('dir', 'main'))])
+                    rules=[EncapsulationRule(scope='main')])
 
         project = ReviewProject(self.directory, spec)
 
@@ -143,11 +143,11 @@ class TestScope(unittest.TestCase):
     def test_rule_with_no_files_in_scope_says_so(self):
         write_files(self.directory, MAVEN_PROJECT)
         spec = Spec('scope test',
-                    rules=[EncapsulationRule(scope=('dir', 'missing'))])
+                    rules=[EncapsulationRule(scope='missing')])
 
         project = ReviewProject(self.directory, spec)
 
-        self.assertIn("No files were found within ('dir', 'missing')",
+        self.assertIn('No files were found within missing',
                       project.feedback)
 
     def test_directories_that_are_not_source_are_left_out(self):

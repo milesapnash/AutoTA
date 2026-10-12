@@ -26,7 +26,8 @@ class EncapsulationRule(Rule):
         return feedback
 
     def passed_message(self):
-        return f'All classes within {self.scope} were properly encapsulated'
+        return (f'All classes within {self.scope_name()} were properly '
+                f'encapsulated')
 
     def __str__(self):
         return '-Encapsulation Rule'

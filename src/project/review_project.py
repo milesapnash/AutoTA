@@ -78,7 +78,7 @@ class ReviewProject:
             if not any(rule.file_filter(file) is not None
                        for file in self.files):
                 complete_feedback.append(
-                    f'No files were found within {rule.scope}')
+                    f'No files were found within {rule.scope_name()}')
                 continue
             rule_feedback = []
             for file in self.files:

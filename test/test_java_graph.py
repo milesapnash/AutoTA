@@ -24,7 +24,7 @@ def related(graph, relation_type):
 
 def qualified(entity):
     """Names a member along with the class that it belongs to."""
-    owners = entity.relations['composes']
+    owners = entity.relations['memberOf']
     if owners and entity.type not in ('class', 'abstractClass', 'interface'):
         return f'{owners[0].info["name"]}.{entity.info["name"]}'
     return entity.info['name']

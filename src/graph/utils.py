@@ -86,8 +86,8 @@ def enclosing_classes(class_entity):
     first."""
     found = []
     current = class_entity
-    while current.relations['composes']:
-        current = current.relations['composes'][0]
+    while current.relations['memberOf']:
+        current = current.relations['memberOf'][0]
         if current is class_entity or current in found:
             break
         found.append(current)
@@ -120,7 +120,7 @@ def field_type(field):
 def add_overrides(method, relate, overridable):
     """Relates a method to each method it overrides, in any of the classes
     and interfaces that its class inherits from."""
-    for owner in method.relations['composes']:
+    for owner in method.relations['memberOf']:
         for parent in supertypes(owner):
             for member in parent.relations['has']:
                 if (member.type in METHOD_TYPES

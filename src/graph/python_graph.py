@@ -111,7 +111,7 @@ def parameters(function):
 
 def enclosing_method(field_entity):
     """Returns the method in which a field is assigned, if any."""
-    for owner in field_entity.relations['composes']:
+    for owner in field_entity.relations['memberOf']:
         for member in owner.node.body:
             if isinstance(member, FUNCTIONS) and any(
                     node is field_entity.node for node in ast.walk(member)):
@@ -236,7 +236,7 @@ class SecondPass:
         taken from the value assigned: either the class instantiated, or the
         annotation of the parameter the field is set from."""
         node = field.node
-        owner = field.relations['composes'][0]
+        owner = field.relations['memberOf'][0]
         if isinstance(node, ast.AnnAssign):
             named, elements = self.referenced_types(node.annotation, field)
             if named or elements:
@@ -313,8 +313,8 @@ class SecondPass:
     # Field/Method/Constructor - Invokes, Instantiates, Assigns and Returns
     def add_usages(self, entity):
         node = entity.node
-        owner = entity.relations['composes'][0] if entity.relations[
-            'composes'] else None
+        owner = entity.relations['memberOf'][0] if entity.relations[
+            'memberOf'] else None
         if entity.type == 'field':
             # A field of the class itself is set as the class is declared
             if 'static' in entity.info['modifiers']:

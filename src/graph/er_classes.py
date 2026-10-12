@@ -1,5 +1,5 @@
 # The relation that each relation is recorded as on the entity it leads to
-INVERSES = {'has': 'composes', 'extends': 'extendedBy',
+INVERSES = {'has': 'memberOf', 'extends': 'extendedBy',
             'implements': 'implementedBy', 'instantiates': 'instantiatedBy',
             'overrides': 'overriddenBy', 'invokes': 'invokedBy',
             'parameterOfType': 'typeOfParameter', 'isOfType': 'isTypeOf',
@@ -19,7 +19,7 @@ class Entity:
         self.node = node
         self.package = package
         self.file = file
-        self.relations = {'has': [], 'composes': [],
+        self.relations = {'has': [], 'memberOf': [],
                           'extends': [], 'extendedBy': [],
                           'implements': [], 'implementedBy': [],
                           'instantiates': [], 'instantiatedBy': [],
@@ -95,7 +95,7 @@ class Has(Relation):
     def __init__(self, source, target):
         super().__init__(source, target, 'has')
         source.relations['has'].append(target)
-        target.relations['composes'].append(source)
+        target.relations['memberOf'].append(source)
 
 
 class Implements(Relation):

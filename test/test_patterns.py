@@ -517,7 +517,7 @@ class TestPatternLibrary(unittest.TestCase):
     def test_relation_is_given_from_the_role_it_starts_at(self):
         # Each relation is also recorded on the entity it leads to, under a
         # name that a role cannot be given
-        for inverse in ('implementedBy', 'composes', 'invokedBy'):
+        for inverse in ('implementedBy', 'memberOf', 'invokedBy'):
             with self.subTest(relation=inverse):
                 with self.assertRaises(TypeError):
                     Interface('strategy', **{inverse: 'concrete'})

@@ -423,7 +423,7 @@ class SecondPass:
 
     # Field/Method/Constructor - Invokes, Instantiates, Assigns and Returns
     def add_usages(self, entity):
-        owners = entity.relations['composes']
+        owners = entity.relations['memberOf']
         if entity.type == 'field':
             scope = Scope(entity, owners[0], {}, returns=False)
             target = field_type(entity)
@@ -741,7 +741,7 @@ class SecondPass:
     def add_lambda(self, node, scope, abstract_method):
         """Adds a class for a lambda expression or method reference, with
         the one method that it implements, and returns that method."""
-        interface = abstract_method.relations['composes'][0]
+        interface = abstract_method.relations['memberOf'][0]
         location = {'node': node, 'package': scope.member.package,
                     'file': scope.member.file}
         lambda_class = Class(
@@ -782,7 +782,7 @@ class SecondPass:
         return_type = self.return_type(abstract_method)
         self.evaluate(body, Scope(method, scope.owner, variables,
                                   return_type), return_type)
-        return Typed(method.relations['composes'][0], None)
+        return Typed(method.relations['memberOf'][0], None)
 
     def method_reference(self, node, scope, target=None):
         abstract_method = self.functional_method(target)
@@ -790,7 +790,7 @@ class SecondPass:
         result = None
         if abstract_method is not None:
             member = self.add_lambda(node, scope, abstract_method)
-            result = Typed(member.relations['composes'][0], None)
+            result = Typed(member.relations['memberOf'][0], None)
 
         # Either a type or an expression comes before the method's name
         qualifier = node.children[0]

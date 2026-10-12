@@ -55,10 +55,19 @@ class FeedbackPDF(FPDF):
 
         for i, line in enumerate(code_lines):
             line_number = f'{i + 1:4}: '
-            line_text = line_number + ''.join(map(str, line)).replace("\r", '')
+            line_text = line_number + line.replace("\r", '')
             line_feedback = feedback_dict.get(i + 1)
             if line_feedback:
                 with self.highlight(line_feedback, modification_time=None):
                     self.cell(0, self.line_height, line_text, border=0, ln=1)
             else:
                 self.cell(0, self.line_height, line_text, border=0, ln=1)
+
+
+def create_feedback_pdf(code_files, task, summary, output_path):
+    feedback_pdf = FeedbackPDF(task=task, summary=summary)
+    for file in code_files:
+        feedback_pdf.add_code_with_feedback(file)
+    feedback_pdf.output(output_path)
+    print()
+    print(f'{output_path} created')

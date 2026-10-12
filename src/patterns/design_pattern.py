@@ -1,19 +1,5 @@
-from src.entity_relations.er_classes import INVERSES
-from src.entity_relations.pattern_library import pattern_library
-
-
-def not_none_check(a, b):
-    return a is None or a == b
-
-
-def check_dict(dict_a, dict_b):
-    """Checks that every modifier required by dict_a is present in dict_b."""
-    if dict_a is None:
-        return True
-    if dict_b is None:
-        return False
-    return all(modifier in dict_b.get('modifiers', ())
-               for modifier in dict_a.get('modifiers', ()))
+from src.graph.er_classes import INVERSES
+from src.patterns.pattern_library import pattern_library
 
 
 def role_edges(relation_dict, roles):
@@ -24,6 +10,32 @@ def role_edges(relation_dict, roles):
             for relation, targets in relations.items()
             for target in targets
             if source in roles and target in roles]
+
+
+def connected_roles(definition, without):
+    """Returns the roles still related to the first role, directly or
+    through other roles, when one role is left out. A member of that
+    role is left out with it if all that relates it to the rest of the
+    pattern is what it overrides, as nothing can override without the
+    class that it would be in."""
+    edges = role_edges(definition.relations, definition.roles)
+    members = definition.relations.get(without, {}).get('has', [])
+    left_out = [without] + [
+        member for member in members
+        if all(relation == 'overrides' and source == member
+               for source, relation, target in edges
+               if member in (source, target)
+               and without not in (source, target))]
+
+    roles = [role for role in definition.roles if role not in left_out]
+    connected = roles[:1]
+    for role in connected:
+        for source, _, target in edges:
+            for near, far in ((source, target), (target, source)):
+                if (near == role and far in roles
+                        and far not in connected):
+                    connected.append(far)
+    return [role for role in roles if role in connected]
 
 
 class Match:
@@ -52,22 +64,21 @@ class RoleSearch:
     first role is the anchor: each entity that can fill it is the start of
     a separate instance of the pattern."""
 
-    def __init__(self, entity_dict, relation_dict, forbidden_dict, roles,
-                 entities_by_type, expected=None):
+    def __init__(self, definition, roles, entities_by_type, expected=None):
         self.roles = roles
         self.anchor = roles[0]
-        self.entity_dict = entity_dict
+        self.entity_dict = definition.roles
         self.entities_by_type = entities_by_type
         # For some roles, relations that an entity filling the role must
         # have with any entity of a given type
         self.expected = expected or {}
-        self.edges = role_edges(relation_dict, roles)
+        self.edges = role_edges(definition.relations, roles)
         # For each role, its relations with the other roles: the relation,
         # the other role, and whether the relation leads to that role
         self.links = self.links_of(self.edges)
         # The relations that each role must not have, in the same form
         self.forbidden_links = self.links_of(
-            role_edges(forbidden_dict, roles))
+            role_edges(definition.forbidden, roles))
         self.pools = {}
 
     def links_of(self, edges):
@@ -80,8 +91,8 @@ class RoleSearch:
 
     def fits(self, role, entity):
         pattern_entity = self.entity_dict[role]
-        return (not_none_check(pattern_entity.type, entity.type)
-                and check_dict(pattern_entity.info, entity.info)
+        return (pattern_entity.type == entity.type
+                and pattern_entity.modifiers <= entity.modifiers
                 # A role related to itself, such as a method that invokes
                 # itself, needs an entity that is related to itself
                 and all(entity in entity.relations[relation]
@@ -245,42 +256,10 @@ class RoleSearch:
 
 
 class DesignPattern:
-    def __init__(self, pattern='singleton'):
-        self.pattern = pattern
-        definition = pattern_library(pattern)
-        if definition is None:
+    def __init__(self, pattern):
+        if pattern_library(pattern) is None:
             raise ValueError(f'Unknown design pattern: {pattern}')
-        self.use(definition)
-
-    def use(self, definition):
-        self.entity_dict = definition.roles
-        self.relation_dict = definition.relations
-        self.forbidden_dict = definition.forbidden
-
-    def connected_roles(self, without):
-        """Returns the roles still related to the first role, directly or
-        through other roles, when one role is left out. A member of that
-        role is left out with it if all that relates it to the rest of the
-        pattern is what it overrides, as nothing can override without the
-        class that it would be in."""
-        edges = role_edges(self.relation_dict, self.entity_dict)
-        members = self.relation_dict.get(without, {}).get('has', [])
-        left_out = [without] + [
-            member for member in members
-            if all(relation == 'overrides' and source == member
-                   for source, relation, target in edges
-                   if member in (source, target)
-                   and without not in (source, target))]
-
-        roles = [role for role in self.entity_dict if role not in left_out]
-        connected = roles[:1]
-        for role in connected:
-            for source, _, target in edges:
-                for near, far in ((source, target), (target, source)):
-                    if (near == role and far in roles
-                            and far not in connected):
-                        connected.append(far)
-        return [role for role in roles if role in connected]
+        self.pattern = pattern
 
     def find_matches(self, graph, language=None):
         """Returns the instances of the pattern in a graph. If there are
@@ -290,17 +269,16 @@ class DesignPattern:
         way to an entity of the right type, so that an instance is almost
         complete when what should fill the role is there but falls short.
         """
-        self.use(pattern_library(self.pattern, language))
+        definition = pattern_library(self.pattern, language)
         entities_by_type = {}
         for entity in graph['entities']:
             entities_by_type.setdefault(entity.type, []).append(entity)
 
         def search(roles, expected=None):
-            return RoleSearch(self.entity_dict, self.relation_dict,
-                              self.forbidden_dict, roles, entities_by_type,
+            return RoleSearch(definition, roles, entities_by_type,
                               expected).instances()
 
-        roles = list(self.entity_dict)
+        roles = list(definition.roles)
         complete = search(roles)
         if complete:
             return [Match(self.pattern, instance) for instance in complete]
@@ -308,9 +286,9 @@ class DesignPattern:
         # The role whose absence leaves most of the pattern is reported
         missing, almost = [], []
         restricted = {role for source, _, target in role_edges(
-            self.forbidden_dict, roles) for role in (source, target)}
+            definition.forbidden, roles) for role in (source, target)}
         for role in roles[1:]:
-            kept = self.connected_roles(without=role)
+            kept = connected_roles(definition, without=role)
             # An instance missing most of its roles is not almost complete
             if len(kept) * 2 < len(roles) or (
                     almost and len(roles) - len(kept) >= len(missing)):
@@ -320,11 +298,11 @@ class DesignPattern:
             if not restricted <= set(kept):
                 continue
             expected = {}
-            for source, relations in self.relation_dict.items():
+            for source, relations in definition.relations.items():
                 for relation, targets in relations.items():
                     if role in targets and source in kept:
                         expected.setdefault(source, []).append(
-                            (relation, self.entity_dict[role].type))
+                            (relation, definition.roles[role].type))
             instances = search(kept, expected)
             if instances:
                 almost = instances

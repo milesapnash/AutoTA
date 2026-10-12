@@ -3,7 +3,7 @@ from src.rules.rule import Rule
 
 # Checks that all nodes within scope follow naming convention
 class IdentifierRule(Rule):
-    def __init__(self, scope='project', node_filter=None):
+    def __init__(self, scope='.', node_filter=None):
         super().__init__(scope)
         self.node_filter = node_filter
 
@@ -28,6 +28,11 @@ class IdentifierRule(Rule):
                  f'specified naming convention.'))
 
         return feedback
+
+    def passed_message(self):
+        return (f'All {self.node_filter.node_class}s within '
+                f'{self.scope_name()} had the correct identifier format of '
+                f'{self.node_filter.node_name}')
 
     def __str__(self):
         return '-Identifier Rule'

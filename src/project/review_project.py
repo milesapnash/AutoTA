@@ -2,17 +2,15 @@ import os
 from collections import Counter
 
 from src.languages import LANGUAGES, language_of
+from src.project.feedback_pdf import create_feedback_pdf
+from src.project.llm_summary import request_llm_summary
 from src.project.review_file import ReviewFile
-from src.project.utils import create_feedback_pdf, gpt_api_request
-from src.rules.encapsulation_rule import EncapsulationRule
-from src.rules.identifier_rule import IdentifierRule
 from src.scope import in_scope, walk_source
 
 
 class ReviewProject:
 
     def __init__(self, directory, spec, er_scope=None):
-        self.directory = directory
         self.spec = spec
         self.files = []
         self.summary = None
@@ -42,7 +40,7 @@ class ReviewProject:
             self.er_graph = self.build_er_graph(self.files)
         else:
             scoped_files = [file for file in self.files
-                            if in_scope(file.relative_path, er_scope)]
+                            if in_scope(file.relative_dir, er_scope)]
             if not scoped_files:
                 raise ValueError(
                     f'No source files found in the scope {er_scope} of '
@@ -80,7 +78,7 @@ class ReviewProject:
             if not any(rule.file_filter(file) is not None
                        for file in self.files):
                 complete_feedback.append(
-                    f'No files were found within {rule.scope}')
+                    f'No files were found within {rule.scope_name()}')
                 continue
             rule_feedback = []
             for file in self.files:
@@ -90,18 +88,8 @@ class ReviewProject:
                     rule_feedback.extend(
                         [f'File: {file.file_name}, Line: {line}: {text}' for
                          line, text in feedback])
-            if not rule_feedback:
-                if isinstance(rule, EncapsulationRule):
-                    complete_feedback.append(
-                        f'All classes within {rule.scope} were properly '
-                        f'encapsulated')
-                elif isinstance(rule, IdentifierRule):
-                    complete_feedback.append(
-                        f'All {rule.node_filter.node_class}s within '
-                        f'{rule.scope} had the correct identifier format of '
-                        f'{rule.node_filter.node_name}')
-            else:
-                complete_feedback.extend(rule_feedback)
+            complete_feedback.extend(rule_feedback
+                                     or [rule.passed_message()])
         complete_feedback.append("")
         return complete_feedback
 
@@ -127,7 +115,7 @@ class ReviewProject:
                 print(feedback)
 
     def get_llm_summary(self):
-        self.summary = gpt_api_request(self.files, self.feedback)
+        self.summary = request_llm_summary(self.files, self.feedback)
 
     def build_pdf(self, output_path):
         create_feedback_pdf(self.files, self.spec.task, self.summary,

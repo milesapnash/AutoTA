@@ -1,15 +1,12 @@
-import os.path
-
-from src.entity_relations.er_classes import (
-    AbstractClass, AbstractMethod, Assigns, Class, Constructor, Extends,
-    Field, Has, HasReturnType, Implements, Instantiates, Interface, Invokes,
+from src.graph.builder import FirstPass, SecondPass, build_graph
+from src.graph.er_classes import (
+    AbstractClass, AbstractMethod, Assigns, Class, Constructor, Field, Has,
+    HasReturnType, Implements, Instantiates, Interface, Invokes,
     IsCollectionOf, IsOfType, Method, Overrides, ParameterOfType, Returns)
-from src.entity_relations.graph_display import print_graph
-from src.entity_relations.utils import (
-    CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_node_to_dict,
-    add_overrides, enclosing_classes, field_type, find_field, find_in_dict,
-    find_members, find_unique, relation_adder, supertypes)
-from src.filters.java_filter import (
+from src.graph.symbols import (
+    EXTERNAL, METHOD_TYPES, Typed, add_overrides, enclosing_classes,
+    field_type, find_field, find_members, find_unique, supertypes)
+from src.languages.java.filter import (
     child_of_type, modifiers_of, supertype_nodes, text, type_name)
 
 TYPE_DECLARATIONS = ('class_declaration', 'interface_declaration',
@@ -119,9 +116,18 @@ def arity(method):
     return len(parameters_of(method.node))
 
 
+def with_arity(members, arguments):
+    """Returns the member that takes the given number of arguments, or the
+    first of them if none does."""
+    for member in members:
+        if arity(member) == arguments:
+            return member
+    return members[0] if members else None
+
+
 def overridable(method, member):
-    return ('static' not in method.info['modifiers']
-            and not member.info['modifiers'] & {'static', 'private'}
+    return ('static' not in method.modifiers
+            and not member.modifiers & {'static', 'private'}
             and arity(method) == arity(member))
 
 
@@ -138,32 +144,16 @@ def imports_of(root):
     return imports
 
 
-class FirstPass:
-    """Creates the entities declared in a file, and the Has relations
-    between each of them and the class it belongs to."""
-
+class JavaFirstPass(FirstPass):
     def __init__(self, file, first_pass_dict):
         package = child_of_type(file.ast, 'package_declaration')
         if package is not None:
             package = text(child_of_type(package, 'scoped_identifier',
                                          'identifier'))
-        self.location = {
-            'package': package,
-            'file': os.path.join(file.relative_path, file.file_name)}
-        self.first_pass_dict = first_pass_dict
-        self.entities = []
-        self.relations = []
+        super().__init__(file, first_pass_dict, package)
 
         for type_node in file.ast.named_children:
             self.add_type(type_node)
-
-    def add(self, entity_type, info, node, owner=None):
-        entity = entity_type(info=info, node=node, **self.location)
-        self.entities.append(entity)
-        add_node_to_dict(self.first_pass_dict, info['name'], entity)
-        if owner is not None:
-            self.relations.append(Has(owner, entity))
-        return entity
 
     def add_type(self, node, owner=None):
         if node.type == 'interface_declaration':
@@ -179,27 +169,27 @@ class FirstPass:
             return
 
         name = text(node.child_by_field_name('name'))
-        entity = self.add(entity_type, {'name': name}, node, owner)
+        entity = self.add(entity_type, name, node, owner)
 
         if node.type == 'record_declaration':
             for component in node.child_by_field_name(
                     'parameters').named_children:
                 if component.type == 'formal_parameter':
-                    info = {'modifiers': COMPONENT_MODIFIERS,
-                            'name': text(
-                                component.child_by_field_name('name')),
-                            'type': type_name(
-                                component.child_by_field_name('type'))}
-                    self.add(Field, info, component, entity)
+                    self.add(Field,
+                             text(component.child_by_field_name('name')),
+                             component, entity,
+                             modifiers=COMPONENT_MODIFIERS,
+                             declared_type=type_name(
+                                 component.child_by_field_name('type')))
         self.add_members(entity, node.child_by_field_name('body'))
 
     def add_anonymous_class(self, owner, node, supertype):
-        info = {'name': f'Anonymous {supertype}', 'supertype': supertype}
-        entity = self.add(Class, info, node, owner)
+        entity = self.add(Class, f'Anonymous {supertype}', node, owner,
+                          supertype=supertype)
         self.add_members(entity, child_of_type(node, 'class_body'))
 
     def add_members(self, owner, body):
-        owner_name = owner.info['name']
+        owner_name = owner.name
         for member in body.named_children if body is not None else []:
             if member.type in TYPE_DECLARATIONS:
                 self.add_type(member, owner)
@@ -207,10 +197,9 @@ class FirstPass:
                 # The members of an enum follow its constants
                 self.add_members(owner, member)
             elif member.type == 'enum_constant':
-                info = {'modifiers': CONSTANT_MODIFIERS,
-                        'name': text(member.child_by_field_name('name')),
-                        'type': owner_name}
-                self.add(Field, info, member, owner)
+                self.add(Field, text(member.child_by_field_name('name')),
+                         member, owner, modifiers=CONSTANT_MODIFIERS,
+                         declared_type=owner_name)
                 self.add_inner_classes(owner, member)
                 # A constant with a body is an anonymous subclass of the enum
                 if child_of_type(member, 'class_body') is not None:
@@ -222,10 +211,9 @@ class FirstPass:
                 abstract = 'abstract' in modifiers or (
                     owner.type == 'interface'
                     and member.child_by_field_name('body') is None)
-                info = {'modifiers': modifiers,
-                        'name': text(member.child_by_field_name('name'))}
-                self.add(AbstractMethod if abstract else Method, info,
-                         member, owner)
+                self.add(AbstractMethod if abstract else Method,
+                         text(member.child_by_field_name('name')), member,
+                         owner, modifiers=modifiers)
                 self.add_inner_classes(owner, member)
             elif member.type in FIELD_DECLARATIONS:
                 modifiers = modifiers_of(member)
@@ -233,15 +221,13 @@ class FirstPass:
                     modifiers = modifiers | CONSTANT_MODIFIERS
                 declared = member.child_by_field_name('type')
                 for field in member.children_by_field_name('declarator'):
-                    info = {'modifiers': modifiers,
-                            'name': text(field.child_by_field_name('name')),
-                            'type': type_name(declared)}
-                    self.add(Field, info, field, owner)
+                    self.add(Field, text(field.child_by_field_name('name')),
+                             field, owner, modifiers=modifiers,
+                             declared_type=type_name(declared))
                     self.add_inner_classes(owner, field)
             elif member.type in CONSTRUCTOR_DECLARATIONS:
-                info = {'modifiers': modifiers_of(member),
-                        'name': f'{owner_name} Constructor'}
-                self.add(Constructor, info, member, owner)
+                self.add(Constructor, f'{owner_name} Constructor', member,
+                         owner, modifiers=modifiers_of(member))
                 self.add_inner_classes(owner, member)
 
     def add_inner_classes(self, owner, member):
@@ -252,13 +238,6 @@ class FirstPass:
             elif is_anonymous_class(node):
                 self.add_anonymous_class(
                     owner, node, type_name(node.child_by_field_name('type')))
-
-
-def supertype_names(entity):
-    if 'supertype' in entity.info:
-        return [entity.info['supertype']]
-    return [type_name(supertype) for supertype in supertype_nodes(
-        entity.node, 'superclass', 'super_interfaces', 'extends_interfaces')]
 
 
 class Scope:
@@ -278,14 +257,12 @@ class Scope:
         return Scope(self.member, self.owner, self.variables, returns=False)
 
 
-class SecondPass:
-    """Adds the relations between the entities found by the first pass."""
-
-    def __init__(self, entities, relations, first_pass_dict, imports):
+class JavaSecondPass(SecondPass):
+    def __init__(self, entities, relations, first_pass_dict, trees):
+        super().__init__(relations, first_pass_dict,
+                         {file: imports_of(tree)
+                          for file, tree in trees.items()})
         self.entities = entities
-        self.first_pass_dict = first_pass_dict
-        self.imports = imports
-        self.relate = relation_adder(relations)
         self.anonymous_classes = {
             self.position(entity, entity.node): entity
             for entity in entities if is_anonymous_class(entity.node)}
@@ -322,7 +299,7 @@ class SecondPass:
         return origin.file, node.start_byte
 
     def is_imported(self, origin, entity):
-        name = entity.info['name']
+        name = entity.name
         for path, static, wildcard in self.imports.get(origin.file, ()):
             if static or entity.package is None:
                 continue
@@ -334,11 +311,12 @@ class SecondPass:
                 return True
         return False
 
-    def find_type(self, name, origin):
-        if name is None:
-            return None
-        return find_in_dict(name, self.first_pass_dict, origin,
-                            types=CLASS_TYPES, imported=self.is_imported)
+    def supertype_names(self, entity):
+        if entity.supertype is not None:
+            return [entity.supertype]
+        return [type_name(supertype) for supertype in supertype_nodes(
+            entity.node, 'superclass', 'super_interfaces',
+            'extends_interfaces')]
 
     def referenced_types(self, type_node, origin, array=False):
         """Returns the classes that a declared type refers to: those that it
@@ -370,26 +348,12 @@ class SecondPass:
             return self.typed(method.node.child_by_field_name('type'), method)
         return None
 
-    # Class - Extends, or Implements if the supertype is an interface
-    def add_supertypes(self, entity):
-        if entity.type not in CLASS_TYPES:
-            return
-        for supertype in supertype_names(entity):
-            related_entity = self.find_type(supertype, entity)
-            if related_entity is None:
-                continue
-            if (related_entity.type == 'interface'
-                    and entity.type != 'interface'):
-                self.relate(Implements, entity, related_entity)
-            else:
-                self.relate(Extends, entity, related_entity)
-
     def add_declared_types(self, entity):
         node = entity.node
         if entity.type == 'field':
             # Field - Type, or the type that it is a collection of
             if node.type == 'enum_constant':
-                named = [self.find_type(entity.info['type'], entity)]
+                named = [self.find_type(entity.declared_type, entity)]
                 elements = []
             else:
                 # Several fields may be declared together with one type
@@ -423,7 +387,7 @@ class SecondPass:
 
     # Field/Method/Constructor - Invokes, Instantiates, Assigns and Returns
     def add_usages(self, entity):
-        owners = entity.relations['composes']
+        owners = entity.relations['memberOf']
         if entity.type == 'field':
             scope = Scope(entity, owners[0], {}, returns=False)
             target = field_type(entity)
@@ -556,21 +520,14 @@ class SecondPass:
         return None
 
     def find_method(self, class_entity, name, arguments):
-        methods = find_members(class_entity, name, METHOD_TYPES)
-        for method in methods:
-            if arity(method) == arguments:
-                return method
-        return methods[0] if methods else None
+        return with_arity(find_members(class_entity, name, METHOD_TYPES),
+                          arguments)
 
     def constructor(self, class_entity, arguments):
         if class_entity is None:
             return None
-        constructors = [member for member in class_entity.relations['has']
-                        if member.type == 'constructor']
-        for constructor in constructors:
-            if arity(constructor) == arguments:
-                return constructor
-        return constructors[0] if constructors else None
+        return with_arity([member for member in class_entity.relations['has']
+                           if member.type == 'constructor'], arguments)
 
     def method_invocation(self, node, scope, target=None):
         """Relates the member to the method that it invokes, and returns the
@@ -741,13 +698,11 @@ class SecondPass:
     def add_lambda(self, node, scope, abstract_method):
         """Adds a class for a lambda expression or method reference, with
         the one method that it implements, and returns that method."""
-        interface = abstract_method.relations['composes'][0]
+        interface = abstract_method.relations['memberOf'][0]
         location = {'node': node, 'package': scope.member.package,
                     'file': scope.member.file}
-        lambda_class = Class(
-            info={'name': f'Lambda {interface.info["name"]}'}, **location)
-        method = Method(info={'modifiers': {'public'},
-                              'name': abstract_method.info['name']},
+        lambda_class = Class(name=f'Lambda {interface.name}', **location)
+        method = Method(name=abstract_method.name, modifiers={'public'},
                         **location)
         self.entities.extend([lambda_class, method])
 
@@ -782,7 +737,7 @@ class SecondPass:
         return_type = self.return_type(abstract_method)
         self.evaluate(body, Scope(method, scope.owner, variables,
                                   return_type), return_type)
-        return Typed(method.relations['composes'][0], None)
+        return Typed(method.relations['memberOf'][0], None)
 
     def method_reference(self, node, scope, target=None):
         abstract_method = self.functional_method(target)
@@ -790,7 +745,7 @@ class SecondPass:
         result = None
         if abstract_method is not None:
             member = self.add_lambda(node, scope, abstract_method)
-            result = Typed(member.relations['composes'][0], None)
+            result = Typed(member.relations['memberOf'][0], None)
 
         # Either a type or an expression comes before the method's name
         qualifier = node.children[0]
@@ -820,24 +775,4 @@ class SecondPass:
 
 
 def build_java_graph(files, display=False):
-    entities = []
-    relations = []
-    first_pass_dict = {}
-    imports = {}
-
-    # Initial Pass
-    for file in files:
-        file_pass = FirstPass(file, first_pass_dict)
-        entities.extend(file_pass.entities)
-        relations.extend(file_pass.relations)
-        imports[file_pass.location['file']] = imports_of(file.ast)
-
-        if display:
-            print_graph(file_pass.entities, file_pass.relations)
-
-    SecondPass(entities, relations, first_pass_dict, imports)
-
-    if display:
-        print_graph(entities, relations)
-
-    return {'entities': entities, 'relations': relations}
+    return build_graph(files, JavaFirstPass, JavaSecondPass, display)

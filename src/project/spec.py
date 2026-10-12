@@ -1,13 +1,13 @@
-from src.entity_relations.design_pattern import DesignPattern
-from src.filters.java_filter import JavaFilter
-from src.filters.python_filter import PythonFilter
+from src.languages.java.filter import JavaFilter
+from src.languages.python.filter import PythonFilter
+from src.patterns.design_pattern import DesignPattern
 from src.rules.encapsulation_rule import EncapsulationRule
 from src.rules.identifier_rule import IdentifierRule
 
 
 def build_spec():
     task = 'Cryptography Task'
-    rules = [EncapsulationRule(scope=('dir', 'main')),
+    rules = [EncapsulationRule(scope='main'),
              # Java test names should not start with 'test'
              IdentifierRule(
                  node_filter=JavaFilter(node_class='method',

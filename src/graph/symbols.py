@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from src.entity_relations.er_classes import Overrides
+from src.graph.er_classes import Overrides
 
 CLASS_TYPES = ('class', 'abstractClass', 'interface')
 METHOD_TYPES = ('method', 'abstractMethod')
@@ -12,14 +12,7 @@ Typed = namedtuple('Typed', ['type', 'element'])
 EXTERNAL = Typed(None, None)
 
 
-def add_node_to_dict(node_dict, key, item):
-    if key in node_dict:
-        node_dict[key].append(item)
-    else:
-        node_dict[key] = [item]
-
-
-def find_in_dict(name, name_dict, origin, types=None, imported=None):
+def find_entity(name, name_dict, origin, types=None, imported=None):
     """Finds the entity that a name refers to from origin. If several
     entities share the name, one in the same file is preferred, then one
     that the file imports, then one in the same package."""
@@ -58,11 +51,11 @@ def relation_adder(relations):
     they are already related in that way."""
     seen = set()
 
-    def relate(relation_type, entity_from, entity_to):
-        key = (relation_type, id(entity_from), id(entity_to))
+    def relate(relation_type, source, target):
+        key = (relation_type, id(source), id(target))
         if key not in seen:
             seen.add(key)
-            relations.append(relation_type(entity_from, entity_to))
+            relations.append(relation_type(source, target))
 
     return relate
 
@@ -86,8 +79,8 @@ def enclosing_classes(class_entity):
     first."""
     found = []
     current = class_entity
-    while current.relations['composes']:
-        current = current.relations['composes'][0]
+    while current.relations['memberOf']:
+        current = current.relations['memberOf'][0]
         if current is class_entity or current in found:
             break
         found.append(current)
@@ -99,7 +92,7 @@ def find_members(class_entity, name, types):
     declares none, those that it inherits."""
     for owner in [class_entity] + supertypes(class_entity):
         found = [member for member in owner.relations['has']
-                 if member.type in types and member.info['name'] == name]
+                 if member.type in types and member.name == name]
         if found:
             return found
     return []
@@ -120,10 +113,10 @@ def field_type(field):
 def add_overrides(method, relate, overridable):
     """Relates a method to each method it overrides, in any of the classes
     and interfaces that its class inherits from."""
-    for owner in method.relations['composes']:
+    for owner in method.relations['memberOf']:
         for parent in supertypes(owner):
             for member in parent.relations['has']:
                 if (member.type in METHOD_TYPES
-                        and member.info['name'] == method.info['name']
+                        and member.name == method.name
                         and overridable(method, member)):
                     relate(Overrides, method, member)

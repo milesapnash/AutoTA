@@ -1,6 +1,6 @@
 import unittest
 
-from src.entity_relations.python_graph import build_python_graph
+from src.languages.python.graph import build_python_graph
 from src.project.review_file import ReviewFile
 
 SHAPES = '''
@@ -71,26 +71,26 @@ def build(**sources):
 
 
 def described(entities):
-    return {(entity.type, entity.info['name']) for entity in entities}
+    return {(entity.type, entity.name) for entity in entities}
 
 
 def related(graph, relation_type):
-    return {(relation.entity_from.info['name'],
-             relation.entity_to.info['name'])
+    return {(relation.source.name,
+             relation.target.name)
             for relation in graph['relations']
             if relation.relation_type == relation_type}
 
 
 def qualified(entity):
     """Names a member along with the class that it belongs to."""
-    owners = entity.relations['composes']
+    owners = entity.relations['memberOf']
     if owners and entity.type not in ('class', 'abstractClass', 'interface'):
-        return f'{owners[0].info["name"]}.{entity.info["name"]}'
-    return entity.info['name']
+        return f'{owners[0].name}.{entity.name}'
+    return entity.name
 
 
 def related_members(graph, relation_type):
-    return {(qualified(relation.entity_from), qualified(relation.entity_to))
+    return {(qualified(relation.source), qualified(relation.target))
             for relation in graph['relations']
             if relation.relation_type == relation_type}
 
@@ -121,7 +121,7 @@ class TestPythonGraph(unittest.TestCase):
              '_size', 'draw'})
 
     def test_modifiers(self):
-        modifiers = {entity.info['name']: entity.info['modifiers']
+        modifiers = {entity.name: entity.modifiers
                      for entity in self.graph['entities']
                      if entity.type == 'field'}
 
@@ -134,8 +134,8 @@ class TestPythonGraph(unittest.TestCase):
                          {('Square', 'Shape')})
 
     def test_overrides(self):
-        overrides = {(relation.entity_from.type, relation.entity_to.type,
-                      relation.entity_to.info['name'])
+        overrides = {(relation.source.type, relation.target.type,
+                      relation.target.name)
                      for relation in self.graph['relations']
                      if relation.relation_type == 'overrides'}
 
@@ -353,7 +353,7 @@ class Colour(Enum):
                      'class Importer:\n    token: Token\n',
             stranger='class Stranger:\n    token: Token\n')
 
-        files = {relation.entity_from.file: relation.entity_to.file
+        files = {relation.source.file: relation.target.file
                  for relation in graph['relations']
                  if relation.relation_type == 'isOfType'}
 

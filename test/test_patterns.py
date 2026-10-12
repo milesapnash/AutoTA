@@ -1,10 +1,10 @@
 import os
 import unittest
 
-from src.entity_relations.design_pattern import DesignPattern
-from src.entity_relations.er_classes import INVERSES, Entity
-from src.entity_relations.java_graph import build_java_graph
-from src.entity_relations.pattern_library import (
+from src.graph.er_classes import INVERSES, Entity
+from src.languages.java.graph import build_java_graph
+from src.patterns.design_pattern import DesignPattern
+from src.patterns.pattern_library import (
     PATTERNS, AbstractMethod, Class, Field, Interface, Method, Pattern,
     pattern_library)
 from src.project.review_file import ReviewFile
@@ -314,7 +314,7 @@ def find(repo, pattern, language='java'):
 
 
 def names(match, role):
-    return [entity.info['name'] for entity in match.roles[role]]
+    return [entity.name for entity in match.roles[role]]
 
 
 class TestMatches(unittest.TestCase):
@@ -502,9 +502,8 @@ class TestPatternLibrary(unittest.TestCase):
                           'strategy': 'interface',
                           'algorithm': 'abstractMethod',
                           'concrete': 'class'})
-        self.assertEqual(pattern.roles['held'].info,
-                         {'modifiers': {'private'}})
-        self.assertIsNone(pattern.roles['run'].info)
+        self.assertEqual(pattern.roles['held'].modifiers, {'private'})
+        self.assertEqual(pattern.roles['run'].modifiers, set())
         self.assertEqual(pattern.relations, {
             'context': {'has': ['held', 'run', 'helper']},
             'held': {'isOfType': ['strategy']},
@@ -517,7 +516,7 @@ class TestPatternLibrary(unittest.TestCase):
     def test_relation_is_given_from_the_role_it_starts_at(self):
         # Each relation is also recorded on the entity it leads to, under a
         # name that a role cannot be given
-        for inverse in ('implementedBy', 'composes', 'invokedBy'):
+        for inverse in ('implementedBy', 'memberOf', 'invokedBy'):
             with self.subTest(relation=inverse):
                 with self.assertRaises(TypeError):
                     Interface('strategy', **{inverse: 'concrete'})
@@ -564,7 +563,7 @@ class TestErGraph(unittest.TestCase):
 
         graph = build_java_graph([file])
 
-        names = {entity.info['name'] for entity in graph['entities']}
+        names = {entity.name for entity in graph['entities']}
         self.assertEqual(names, {'Example', 'field', 'method'})
 
     def test_file_with_several_types_includes_all_of_them(self):
@@ -581,7 +580,7 @@ class TestErGraph(unittest.TestCase):
 
         graph = build_java_graph([file])
 
-        types = {(entity.type, entity.info['name'])
+        types = {(entity.type, entity.name)
                  for entity in graph['entities']}
         self.assertEqual(types, {('interface', 'Shape'),
                                  ('abstractMethod', 'area'),

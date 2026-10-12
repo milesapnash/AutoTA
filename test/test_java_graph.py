@@ -1,6 +1,6 @@
 import unittest
 
-from src.entity_relations.java_graph import build_java_graph
+from src.languages.java.graph import build_java_graph
 from src.project.review_file import ReviewFile
 
 
@@ -11,34 +11,34 @@ def build(*sources):
 
 
 def described(graph):
-    return {(entity.type, entity.info['name'])
+    return {(entity.type, entity.name)
             for entity in graph['entities']}
 
 
 def related(graph, relation_type):
-    return {(relation.entity_from.info['name'],
-             relation.entity_to.info['name'])
+    return {(relation.source.name,
+             relation.target.name)
             for relation in graph['relations']
             if relation.relation_type == relation_type}
 
 
 def qualified(entity):
     """Names a member along with the class that it belongs to."""
-    owners = entity.relations['composes']
+    owners = entity.relations['memberOf']
     if owners and entity.type not in ('class', 'abstractClass', 'interface'):
-        return f'{owners[0].info["name"]}.{entity.info["name"]}'
-    return entity.info['name']
+        return f'{owners[0].name}.{entity.name}'
+    return entity.name
 
 
 def related_members(graph, relation_type):
-    return {(qualified(relation.entity_from), qualified(relation.entity_to))
+    return {(qualified(relation.source), qualified(relation.target))
             for relation in graph['relations']
             if relation.relation_type == relation_type}
 
 
 def entity_named(graph, name):
     return next(entity for entity in graph['entities']
-                if entity.info['name'] == name)
+                if entity.name == name)
 
 
 class TestInterfaces(unittest.TestCase):
@@ -54,7 +54,7 @@ class TestInterfaces(unittest.TestCase):
                                             ('field', 'MAX'),
                                             ('abstractMethod', 'check')})
         self.assertLessEqual({'public', 'static', 'final'},
-                             entity_named(graph, 'MAX').info['modifiers'])
+                             entity_named(graph, 'MAX').modifiers)
 
     def test_method_with_a_body_is_not_abstract(self):
         graph = build('''
@@ -540,7 +540,7 @@ class TestLambdas(unittest.TestCase):
 
     def test_lambda_is_a_class_implementing_the_interface_expected(self):
         lambdas = [entity for entity in self.graph['entities']
-                   if entity.info['name'] == 'Lambda Strategy']
+                   if entity.name == 'Lambda Strategy']
 
         # One assigned to a field, one passed to a method and one returned
         self.assertEqual(len(lambdas), 3)
@@ -571,7 +571,7 @@ class TestNameLookup(unittest.TestCase):
             'package alpha; class Neighbour { Token t; }',
             'package delta; class Stranger { Token t; }')
 
-        packages = {relation.entity_from.package: relation.entity_to.package
+        packages = {relation.source.package: relation.target.package
                     for relation in graph['relations']
                     if relation.relation_type == 'isOfType'}
 
@@ -607,7 +607,7 @@ class TestModernSyntax(unittest.TestCase):
         self.assertLessEqual({('class', 'Square'), ('field', 'side'),
                               ('field', 'inner'), ('method', 'area')},
                              described(graph))
-        self.assertEqual(entity_named(graph, 'side').info['modifiers'],
+        self.assertEqual(entity_named(graph, 'side').modifiers,
                          {'private', 'final'})
         self.assertEqual(related(graph, 'implements'),
                          {('Square', 'Shape')})

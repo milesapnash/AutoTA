@@ -17,14 +17,14 @@ def path_parts(path):
     return [part for part in normalised.split('/') if part not in ('', '.')]
 
 
-def in_scope(relative_path, scope):
+def in_scope(relative_dir, scope):
     """Checks whether a directory is within a scope, which is a directory
     given by its name, such as main, or by a path, such as src/main. The
     scope may be anywhere in the path to the directory, so that main covers
     src/main/java in a Maven project. Every directory is within the scope
     of the project directory itself, given as a dot."""
     scope_parts = path_parts(scope)
-    directory_parts = path_parts(relative_path)
+    directory_parts = path_parts(relative_dir)
     return any(
         directory_parts[start:start + len(scope_parts)] == scope_parts
         for start in range(len(directory_parts) - len(scope_parts) + 1))

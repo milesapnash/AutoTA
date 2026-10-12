@@ -20,7 +20,7 @@ def print_graph(entities, relations):
 
     # Add edges to the graph
     for relation in relations:
-        graph.add_edge(str(relation.entity_from), str(relation.entity_to),
+        graph.add_edge(str(relation.source), str(relation.target),
                        label=relation.relation_type)
 
     # Use the spring layout to position nodes

@@ -8,7 +8,7 @@ from src.graph.graph_display import print_graph
 from src.graph.second_pass import SecondPass
 from src.graph.symbols import (
     EXTERNAL, METHOD_TYPES, Typed, add_overrides, enclosing_classes,
-    field_type, find_field, find_members, find_unique, register, supertypes)
+    field_type, find_field, find_members, find_unique, supertypes)
 from src.languages.java.filter import (
     child_of_type, modifiers_of, supertype_nodes, text, type_name)
 
@@ -119,6 +119,15 @@ def arity(method):
     return len(parameters_of(method.node))
 
 
+def with_arity(members, arguments):
+    """Returns the member that takes the given number of arguments, or the
+    first of them if none does."""
+    for member in members:
+        if arity(member) == arguments:
+            return member
+    return members[0] if members else None
+
+
 def overridable(method, member):
     return ('static' not in method.modifiers
             and not member.modifiers & {'static', 'private'}
@@ -161,7 +170,7 @@ class FirstPass:
         entity = entity_type(name=name, node=node, **attributes,
                              **self.location)
         self.entities.append(entity)
-        register(self.first_pass_dict, name, entity)
+        self.first_pass_dict.setdefault(name, []).append(entity)
         if owner is not None:
             self.relations.append(Has(owner, entity))
         return entity
@@ -529,21 +538,14 @@ class JavaSecondPass(SecondPass):
         return None
 
     def find_method(self, class_entity, name, arguments):
-        methods = find_members(class_entity, name, METHOD_TYPES)
-        for method in methods:
-            if arity(method) == arguments:
-                return method
-        return methods[0] if methods else None
+        return with_arity(find_members(class_entity, name, METHOD_TYPES),
+                          arguments)
 
     def constructor(self, class_entity, arguments):
         if class_entity is None:
             return None
-        constructors = [member for member in class_entity.relations['has']
-                        if member.type == 'constructor']
-        for constructor in constructors:
-            if arity(constructor) == arguments:
-                return constructor
-        return constructors[0] if constructors else None
+        return with_arity([member for member in class_entity.relations['has']
+                           if member.type == 'constructor'], arguments)
 
     def method_invocation(self, node, scope, target=None):
         """Relates the member to the method that it invokes, and returns the

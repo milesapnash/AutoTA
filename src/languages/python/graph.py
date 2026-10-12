@@ -9,7 +9,7 @@ from src.graph.graph_display import print_graph
 from src.graph.second_pass import SecondPass
 from src.graph.symbols import (
     CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_overrides, field_type,
-    find_field, find_members, find_unique, register)
+    find_field, find_members, find_unique)
 from src.languages.python.filter import (
     FUNCTIONS, PythonFilter, base_names, class_kind, classify,
     decorator_names, identifier, is_abstract_class, is_abstract_method)
@@ -47,7 +47,7 @@ def first_pass(file, first_pass_dict):
             entity = entity_type(name=name, **location)
             class_entities[id(node)] = entity
             file_entities.append(entity)
-            register(first_pass_dict, name, entity)
+            first_pass_dict.setdefault(name, []).append(entity)
             if owner_entity is not None:
                 file_relations.append(Has(owner_entity, entity))
             continue
@@ -74,7 +74,7 @@ def first_pass(file, first_pass_dict):
 
         entity = entity_type(name=name, **attributes, **location)
         file_entities.append(entity)
-        register(first_pass_dict, name, entity)
+        first_pass_dict.setdefault(name, []).append(entity)
         file_relations.append(Has(owner_entity, entity))
 
     return file_entities, file_relations

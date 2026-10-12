@@ -55,7 +55,7 @@ class FeedbackPDF(FPDF):
 
         for i, line in enumerate(code_lines):
             line_number = f'{i + 1:4}: '
-            line_text = line_number + ''.join(map(str, line)).replace("\r", '')
+            line_text = line_number + line.replace("\r", '')
             line_feedback = feedback_dict.get(i + 1)
             if line_feedback:
                 with self.highlight(line_feedback, modification_time=None):

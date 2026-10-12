@@ -82,8 +82,7 @@ class Relation:
     def __str__(self):
         return f'{self.source} {self.relation_type} {self.target}'
 
-    def __repr__(self):
-        return f'{self.source} {self.relation_type} {self.target}'
+    __repr__ = __str__
 
 
 class Has(Relation):

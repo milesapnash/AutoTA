@@ -1,6 +1,6 @@
 import unittest
 
-from src.graph.java_graph import build_java_graph
+from src.languages.java.graph import build_java_graph
 from src.project.review_file import ReviewFile
 
 

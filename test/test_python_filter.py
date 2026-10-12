@@ -1,7 +1,7 @@
 import ast
 import unittest
 
-from src.filters.python_filter import PythonFilter
+from src.languages.python.filter import PythonFilter
 
 CODE = '''
 from abc import ABC, abstractmethod

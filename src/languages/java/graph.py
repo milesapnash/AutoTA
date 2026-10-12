@@ -1,7 +1,5 @@
 import os.path
 
-from src.filters.java_filter import (
-    child_of_type, modifiers_of, supertype_nodes, text, type_name)
 from src.graph.er_classes import (
     AbstractClass, AbstractMethod, Assigns, Class, Constructor, Field, Has,
     HasReturnType, Implements, Instantiates, Interface, Invokes,
@@ -11,6 +9,8 @@ from src.graph.second_pass import SecondPass
 from src.graph.symbols import (
     EXTERNAL, METHOD_TYPES, Typed, add_overrides, enclosing_classes,
     field_type, find_field, find_members, find_unique, register, supertypes)
+from src.languages.java.filter import (
+    child_of_type, modifiers_of, supertype_nodes, text, type_name)
 
 TYPE_DECLARATIONS = ('class_declaration', 'interface_declaration',
                      'enum_declaration', 'record_declaration')

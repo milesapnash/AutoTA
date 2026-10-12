@@ -2,7 +2,7 @@ import os
 import unittest
 
 from src.graph.er_classes import INVERSES, Entity
-from src.graph.java_graph import build_java_graph
+from src.languages.java.graph import build_java_graph
 from src.patterns.design_pattern import DesignPattern
 from src.patterns.pattern_library import (
     PATTERNS, AbstractMethod, Class, Field, Interface, Method, Pattern,

@@ -1,6 +1,6 @@
 import unittest
 
-from src.graph.python_graph import build_python_graph
+from src.languages.python.graph import build_python_graph
 from src.project.review_file import ReviewFile
 
 SHAPES = '''

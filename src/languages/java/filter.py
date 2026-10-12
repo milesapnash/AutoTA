@@ -1,4 +1,4 @@
-from src.filters.base_filter import Filter
+from src.languages.base_filter import Filter
 
 # The type of syntax tree node that each kind of node is parsed as
 NODE_TYPES = {'node': None,

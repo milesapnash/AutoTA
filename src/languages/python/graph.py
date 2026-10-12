@@ -1,9 +1,6 @@
 import ast
 import os.path
 
-from src.filters.python_filter import (
-    FUNCTIONS, PythonFilter, base_names, class_kind, classify,
-    decorator_names, identifier, is_abstract_class, is_abstract_method)
 from src.graph.er_classes import (
     AbstractClass, AbstractMethod, Assigns, Class, Constructor, Field, Has,
     HasReturnType, Instantiates, Interface, Invokes, IsCollectionOf, IsOfType,
@@ -13,6 +10,9 @@ from src.graph.second_pass import SecondPass
 from src.graph.symbols import (
     CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_overrides, field_type,
     find_field, find_members, find_unique, register)
+from src.languages.python.filter import (
+    FUNCTIONS, PythonFilter, base_names, class_kind, classify,
+    decorator_names, identifier, is_abstract_class, is_abstract_method)
 
 # Annotations that describe a single value rather than a collection of them
 WRAPPERS = {'Optional', 'Union', 'Final', 'ClassVar', 'Annotated'}

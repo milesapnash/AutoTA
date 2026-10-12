@@ -6,8 +6,8 @@ import warnings
 from contextlib import contextmanager, redirect_stdout
 from unittest import mock
 
+from src.languages.java.filter import JavaFilter
 from src.patterns.design_pattern import DesignPattern
-from src.filters.java_filter import JavaFilter
 from src.project.feedback_pdf import FeedbackPDF
 from src.project.llm_summary import request_llm_summary
 from src.project.review_file import ReviewFile

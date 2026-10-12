@@ -1,6 +1,6 @@
 import ast
 
-from src.filters.base_filter import Filter
+from src.languages.base_filter import Filter
 
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
 ASSIGNMENTS = (ast.Assign, ast.AnnAssign)

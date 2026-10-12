@@ -79,97 +79,97 @@ class Field(Entity):
 
 
 class Relation:
-    def __init__(self, entity_from, entity_to, relation_type):
-        self.entity_from = entity_from
-        self.entity_to = entity_to
+    def __init__(self, source, target, relation_type):
+        self.source = source
+        self.target = target
         self.relation_type = relation_type
 
     def __str__(self):
-        return f'{self.entity_from} {self.relation_type} {self.entity_to}'
+        return f'{self.source} {self.relation_type} {self.target}'
 
     def __repr__(self):
-        return f'{self.entity_from} {self.relation_type} {self.entity_to}'
+        return f'{self.source} {self.relation_type} {self.target}'
 
 
 class Has(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'has')
-        class_entity.relations['has'].append(member_entity)
-        member_entity.relations['composes'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'has')
+        source.relations['has'].append(target)
+        target.relations['composes'].append(source)
 
 
 class Implements(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'implements')
-        class_entity.relations['implements'].append(member_entity)
-        member_entity.relations['implementedBy'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'implements')
+        source.relations['implements'].append(target)
+        target.relations['implementedBy'].append(source)
 
 
 class Extends(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'extends')
-        class_entity.relations['extends'].append(member_entity)
-        member_entity.relations['extendedBy'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'extends')
+        source.relations['extends'].append(target)
+        target.relations['extendedBy'].append(source)
 
 
 class ParameterOfType(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'parameterOfType')
-        class_entity.relations['parameterOfType'].append(member_entity)
-        member_entity.relations['typeOfParameter'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'parameterOfType')
+        source.relations['parameterOfType'].append(target)
+        target.relations['typeOfParameter'].append(source)
 
 
 class IsOfType(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'isOfType')
-        class_entity.relations['isOfType'].append(member_entity)
-        member_entity.relations['isTypeOf'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'isOfType')
+        source.relations['isOfType'].append(target)
+        target.relations['isTypeOf'].append(source)
 
 
 class HasReturnType(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'hasReturnType')
-        class_entity.relations['hasReturnType'].append(member_entity)
-        member_entity.relations['isReturnTypeOf'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'hasReturnType')
+        source.relations['hasReturnType'].append(target)
+        target.relations['isReturnTypeOf'].append(source)
 
 
 class Invokes(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'invokes')
-        class_entity.relations['invokes'].append(member_entity)
-        member_entity.relations['invokedBy'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'invokes')
+        source.relations['invokes'].append(target)
+        target.relations['invokedBy'].append(source)
 
 
 class Overrides(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'overrides')
-        class_entity.relations['overrides'].append(member_entity)
-        member_entity.relations['overridenBy'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'overrides')
+        source.relations['overrides'].append(target)
+        target.relations['overridenBy'].append(source)
 
 
 class Instantiates(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'instantiates')
-        class_entity.relations['instantiates'].append(member_entity)
-        member_entity.relations['instantiatedBy'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'instantiates')
+        source.relations['instantiates'].append(target)
+        target.relations['instantiatedBy'].append(source)
 
 
 class IsCollectionOf(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'isCollectionOf')
-        class_entity.relations['isCollectionOf'].append(member_entity)
-        member_entity.relations['isElementTypeOf'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'isCollectionOf')
+        source.relations['isCollectionOf'].append(target)
+        target.relations['isElementTypeOf'].append(source)
 
 
 class Assigns(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'assigns')
-        class_entity.relations['assigns'].append(member_entity)
-        member_entity.relations['assignedBy'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'assigns')
+        source.relations['assigns'].append(target)
+        target.relations['assignedBy'].append(source)
 
 
 class Returns(Relation):
-    def __init__(self, class_entity, member_entity):
-        super().__init__(class_entity, member_entity, 'returns')
-        class_entity.relations['returns'].append(member_entity)
-        member_entity.relations['returnedBy'].append(class_entity)
+    def __init__(self, source, target):
+        super().__init__(source, target, 'returns')
+        source.relations['returns'].append(target)
+        target.relations['returnedBy'].append(source)

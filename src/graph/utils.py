@@ -58,11 +58,11 @@ def relation_adder(relations):
     they are already related in that way."""
     seen = set()
 
-    def relate(relation_type, entity_from, entity_to):
-        key = (relation_type, id(entity_from), id(entity_to))
+    def relate(relation_type, source, target):
+        key = (relation_type, id(source), id(target))
         if key not in seen:
             seen.add(key)
-            relations.append(relation_type(entity_from, entity_to))
+            relations.append(relation_type(source, target))
 
     return relate
 

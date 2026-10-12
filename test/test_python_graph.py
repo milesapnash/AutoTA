@@ -75,8 +75,8 @@ def described(entities):
 
 
 def related(graph, relation_type):
-    return {(relation.entity_from.info['name'],
-             relation.entity_to.info['name'])
+    return {(relation.source.info['name'],
+             relation.target.info['name'])
             for relation in graph['relations']
             if relation.relation_type == relation_type}
 
@@ -90,7 +90,7 @@ def qualified(entity):
 
 
 def related_members(graph, relation_type):
-    return {(qualified(relation.entity_from), qualified(relation.entity_to))
+    return {(qualified(relation.source), qualified(relation.target))
             for relation in graph['relations']
             if relation.relation_type == relation_type}
 
@@ -134,8 +134,8 @@ class TestPythonGraph(unittest.TestCase):
                          {('Square', 'Shape')})
 
     def test_overrides(self):
-        overrides = {(relation.entity_from.type, relation.entity_to.type,
-                      relation.entity_to.info['name'])
+        overrides = {(relation.source.type, relation.target.type,
+                      relation.target.info['name'])
                      for relation in self.graph['relations']
                      if relation.relation_type == 'overrides'}
 
@@ -353,7 +353,7 @@ class Colour(Enum):
                      'class Importer:\n    token: Token\n',
             stranger='class Stranger:\n    token: Token\n')
 
-        files = {relation.entity_from.file: relation.entity_to.file
+        files = {relation.source.file: relation.target.file
                  for relation in graph['relations']
                  if relation.relation_type == 'isOfType'}
 

@@ -16,8 +16,8 @@ def described(graph):
 
 
 def related(graph, relation_type):
-    return {(relation.entity_from.info['name'],
-             relation.entity_to.info['name'])
+    return {(relation.source.info['name'],
+             relation.target.info['name'])
             for relation in graph['relations']
             if relation.relation_type == relation_type}
 
@@ -31,7 +31,7 @@ def qualified(entity):
 
 
 def related_members(graph, relation_type):
-    return {(qualified(relation.entity_from), qualified(relation.entity_to))
+    return {(qualified(relation.source), qualified(relation.target))
             for relation in graph['relations']
             if relation.relation_type == relation_type}
 
@@ -571,7 +571,7 @@ class TestNameLookup(unittest.TestCase):
             'package alpha; class Neighbour { Token t; }',
             'package delta; class Stranger { Token t; }')
 
-        packages = {relation.entity_from.package: relation.entity_to.package
+        packages = {relation.source.package: relation.target.package
                     for relation in graph['relations']
                     if relation.relation_type == 'isOfType'}
 

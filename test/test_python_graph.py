@@ -71,12 +71,12 @@ def build(**sources):
 
 
 def described(entities):
-    return {(entity.type, entity.info['name']) for entity in entities}
+    return {(entity.type, entity.name) for entity in entities}
 
 
 def related(graph, relation_type):
-    return {(relation.source.info['name'],
-             relation.target.info['name'])
+    return {(relation.source.name,
+             relation.target.name)
             for relation in graph['relations']
             if relation.relation_type == relation_type}
 
@@ -85,8 +85,8 @@ def qualified(entity):
     """Names a member along with the class that it belongs to."""
     owners = entity.relations['memberOf']
     if owners and entity.type not in ('class', 'abstractClass', 'interface'):
-        return f'{owners[0].info["name"]}.{entity.info["name"]}'
-    return entity.info['name']
+        return f'{owners[0].name}.{entity.name}'
+    return entity.name
 
 
 def related_members(graph, relation_type):
@@ -121,7 +121,7 @@ class TestPythonGraph(unittest.TestCase):
              '_size', 'draw'})
 
     def test_modifiers(self):
-        modifiers = {entity.info['name']: entity.info['modifiers']
+        modifiers = {entity.name: entity.modifiers
                      for entity in self.graph['entities']
                      if entity.type == 'field'}
 
@@ -135,7 +135,7 @@ class TestPythonGraph(unittest.TestCase):
 
     def test_overrides(self):
         overrides = {(relation.source.type, relation.target.type,
-                      relation.target.info['name'])
+                      relation.target.name)
                      for relation in self.graph['relations']
                      if relation.relation_type == 'overrides'}
 

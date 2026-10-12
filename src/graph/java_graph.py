@@ -120,8 +120,8 @@ def arity(method):
 
 
 def overridable(method, member):
-    return ('static' not in method.info['modifiers']
-            and not member.info['modifiers'] & {'static', 'private'}
+    return ('static' not in method.modifiers
+            and not member.modifiers & {'static', 'private'}
             and arity(method) == arity(member))
 
 
@@ -157,10 +157,11 @@ class FirstPass:
         for type_node in file.ast.named_children:
             self.add_type(type_node)
 
-    def add(self, entity_type, info, node, owner=None):
-        entity = entity_type(info=info, node=node, **self.location)
+    def add(self, entity_type, name, node, owner=None, **attributes):
+        entity = entity_type(name=name, node=node, **attributes,
+                             **self.location)
         self.entities.append(entity)
-        add_node_to_dict(self.first_pass_dict, info['name'], entity)
+        add_node_to_dict(self.first_pass_dict, name, entity)
         if owner is not None:
             self.relations.append(Has(owner, entity))
         return entity
@@ -179,27 +180,27 @@ class FirstPass:
             return
 
         name = text(node.child_by_field_name('name'))
-        entity = self.add(entity_type, {'name': name}, node, owner)
+        entity = self.add(entity_type, name, node, owner)
 
         if node.type == 'record_declaration':
             for component in node.child_by_field_name(
                     'parameters').named_children:
                 if component.type == 'formal_parameter':
-                    info = {'modifiers': COMPONENT_MODIFIERS,
-                            'name': text(
-                                component.child_by_field_name('name')),
-                            'type': type_name(
-                                component.child_by_field_name('type'))}
-                    self.add(Field, info, component, entity)
+                    self.add(Field,
+                             text(component.child_by_field_name('name')),
+                             component, entity,
+                             modifiers=COMPONENT_MODIFIERS,
+                             declared_type=type_name(
+                                 component.child_by_field_name('type')))
         self.add_members(entity, node.child_by_field_name('body'))
 
     def add_anonymous_class(self, owner, node, supertype):
-        info = {'name': f'Anonymous {supertype}', 'supertype': supertype}
-        entity = self.add(Class, info, node, owner)
+        entity = self.add(Class, f'Anonymous {supertype}', node, owner,
+                          supertype=supertype)
         self.add_members(entity, child_of_type(node, 'class_body'))
 
     def add_members(self, owner, body):
-        owner_name = owner.info['name']
+        owner_name = owner.name
         for member in body.named_children if body is not None else []:
             if member.type in TYPE_DECLARATIONS:
                 self.add_type(member, owner)
@@ -207,10 +208,9 @@ class FirstPass:
                 # The members of an enum follow its constants
                 self.add_members(owner, member)
             elif member.type == 'enum_constant':
-                info = {'modifiers': CONSTANT_MODIFIERS,
-                        'name': text(member.child_by_field_name('name')),
-                        'type': owner_name}
-                self.add(Field, info, member, owner)
+                self.add(Field, text(member.child_by_field_name('name')),
+                         member, owner, modifiers=CONSTANT_MODIFIERS,
+                         declared_type=owner_name)
                 self.add_inner_classes(owner, member)
                 # A constant with a body is an anonymous subclass of the enum
                 if child_of_type(member, 'class_body') is not None:
@@ -222,10 +222,9 @@ class FirstPass:
                 abstract = 'abstract' in modifiers or (
                     owner.type == 'interface'
                     and member.child_by_field_name('body') is None)
-                info = {'modifiers': modifiers,
-                        'name': text(member.child_by_field_name('name'))}
-                self.add(AbstractMethod if abstract else Method, info,
-                         member, owner)
+                self.add(AbstractMethod if abstract else Method,
+                         text(member.child_by_field_name('name')), member,
+                         owner, modifiers=modifiers)
                 self.add_inner_classes(owner, member)
             elif member.type in FIELD_DECLARATIONS:
                 modifiers = modifiers_of(member)
@@ -233,15 +232,13 @@ class FirstPass:
                     modifiers = modifiers | CONSTANT_MODIFIERS
                 declared = member.child_by_field_name('type')
                 for field in member.children_by_field_name('declarator'):
-                    info = {'modifiers': modifiers,
-                            'name': text(field.child_by_field_name('name')),
-                            'type': type_name(declared)}
-                    self.add(Field, info, field, owner)
+                    self.add(Field, text(field.child_by_field_name('name')),
+                             field, owner, modifiers=modifiers,
+                             declared_type=type_name(declared))
                     self.add_inner_classes(owner, field)
             elif member.type in CONSTRUCTOR_DECLARATIONS:
-                info = {'modifiers': modifiers_of(member),
-                        'name': f'{owner_name} Constructor'}
-                self.add(Constructor, info, member, owner)
+                self.add(Constructor, f'{owner_name} Constructor', member,
+                         owner, modifiers=modifiers_of(member))
                 self.add_inner_classes(owner, member)
 
     def add_inner_classes(self, owner, member):
@@ -255,8 +252,8 @@ class FirstPass:
 
 
 def supertype_names(entity):
-    if 'supertype' in entity.info:
-        return [entity.info['supertype']]
+    if entity.supertype is not None:
+        return [entity.supertype]
     return [type_name(supertype) for supertype in supertype_nodes(
         entity.node, 'superclass', 'super_interfaces', 'extends_interfaces')]
 
@@ -322,7 +319,7 @@ class SecondPass:
         return origin.file, node.start_byte
 
     def is_imported(self, origin, entity):
-        name = entity.info['name']
+        name = entity.name
         for path, static, wildcard in self.imports.get(origin.file, ()):
             if static or entity.package is None:
                 continue
@@ -389,7 +386,7 @@ class SecondPass:
         if entity.type == 'field':
             # Field - Type, or the type that it is a collection of
             if node.type == 'enum_constant':
-                named = [self.find_type(entity.info['type'], entity)]
+                named = [self.find_type(entity.declared_type, entity)]
                 elements = []
             else:
                 # Several fields may be declared together with one type
@@ -744,10 +741,8 @@ class SecondPass:
         interface = abstract_method.relations['memberOf'][0]
         location = {'node': node, 'package': scope.member.package,
                     'file': scope.member.file}
-        lambda_class = Class(
-            info={'name': f'Lambda {interface.info["name"]}'}, **location)
-        method = Method(info={'modifiers': {'public'},
-                              'name': abstract_method.info['name']},
+        lambda_class = Class(name=f'Lambda {interface.name}', **location)
+        method = Method(name=abstract_method.name, modifiers={'public'},
                         **location)
         self.entities.extend([lambda_class, method])
 

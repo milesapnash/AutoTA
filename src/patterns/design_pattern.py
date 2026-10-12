@@ -6,16 +6,6 @@ def not_none_check(a, b):
     return a is None or a == b
 
 
-def check_dict(dict_a, dict_b):
-    """Checks that every modifier required by dict_a is present in dict_b."""
-    if dict_a is None:
-        return True
-    if dict_b is None:
-        return False
-    return all(modifier in dict_b.get('modifiers', ())
-               for modifier in dict_a.get('modifiers', ()))
-
-
 def role_edges(relation_dict, roles):
     """Returns each relation between two of the roles, as the role it is
     from, the relation and the role it leads to."""
@@ -81,7 +71,7 @@ class RoleSearch:
     def fits(self, role, entity):
         pattern_entity = self.entity_dict[role]
         return (not_none_check(pattern_entity.type, entity.type)
-                and check_dict(pattern_entity.info, entity.info)
+                and pattern_entity.modifiers <= entity.modifiers
                 # A role related to itself, such as a method that invokes
                 # itself, needs an entity that is related to itself
                 and all(entity in entity.relations[relation]

@@ -93,7 +93,7 @@ class TestScope(unittest.TestCase):
     def graph_classes(self, scope):
         project = ReviewProject(self.directory, Spec('scope test'),
                                 er_scope=scope)
-        return {entity.info['name']
+        return {entity.name
                 for entity in project.er_graph['entities']
                 if entity.type == 'class'}
 

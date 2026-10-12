@@ -18,61 +18,56 @@ INVERSES = {
 class Entity:
     types = {'class', 'abstractClass', 'interface', 'constructor', 'method',
              'abstractMethod', 'field'}
+    type = 'entity'
 
-    def __init__(self, entity_type='entity', info=None, node=None,
-                 package=None, file=None):
-        self.type = entity_type
-        self.info = info
+    def __init__(self, *, name=None, modifiers=(), node=None, package=None,
+                 file=None, declared_type=None, supertype=None):
+        self.name = name
+        self.modifiers = set(modifiers)
         self.node = node
         self.package = package
         self.file = file
-        self.relations = {name: [] for pair in INVERSES.items()
-                          for name in pair}
+        # The name of the type that a field is declared with
+        self.declared_type = declared_type
+        # The name of the type that an anonymous class extends or implements
+        self.supertype = supertype
+        self.relations = {relation: [] for pair in INVERSES.items()
+                          for relation in pair}
 
     def __str__(self):
-        if self.info is None or self.info["name"] is None:
+        if self.name is None:
             return f'{self.type}'
-        return f'{self.file} : {self.type}: {self.info["name"]}'
+        return f'{self.file} : {self.type}: {self.name}'
 
-    def __repr__(self):
-        if self.info is None or self.info["name"] is None:
-            return f'{self.type}'
-        return f'{self.file} : {self.type}: {self.info["name"]}'
+    __repr__ = __str__
 
 
 class Class(Entity):
-    def __init__(self, info=None, node=None, package=None, file=None):
-        super().__init__('class', info, node, package, file)
+    type = 'class'
 
 
 class AbstractClass(Entity):
-    def __init__(self, info=None, node=None, package=None, file=None):
-        super().__init__('abstractClass', info, node, package, file)
+    type = 'abstractClass'
 
 
 class Interface(Entity):
-    def __init__(self, info=None, node=None, package=None, file=None):
-        super().__init__('interface', info, node, package, file)
+    type = 'interface'
 
 
 class Constructor(Entity):
-    def __init__(self, info=None, node=None, package=None, file=None):
-        super().__init__('constructor', info, node, package, file)
+    type = 'constructor'
 
 
 class Method(Entity):
-    def __init__(self, info=None, node=None, package=None, file=None):
-        super().__init__('method', info, node, package, file)
+    type = 'method'
 
 
 class AbstractMethod(Entity):
-    def __init__(self, info=None, node=None, package=None, file=None):
-        super().__init__('abstractMethod', info, node, package, file)
+    type = 'abstractMethod'
 
 
 class Field(Entity):
-    def __init__(self, info=None, node=None, package=None, file=None):
-        super().__init__('field', info, node, package, file)
+    type = 'field'
 
 
 class Relation:

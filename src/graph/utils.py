@@ -99,7 +99,7 @@ def find_members(class_entity, name, types):
     declares none, those that it inherits."""
     for owner in [class_entity] + supertypes(class_entity):
         found = [member for member in owner.relations['has']
-                 if member.type in types and member.info['name'] == name]
+                 if member.type in types and member.name == name]
         if found:
             return found
     return []
@@ -124,6 +124,6 @@ def add_overrides(method, relate, overridable):
         for parent in supertypes(owner):
             for member in parent.relations['has']:
                 if (member.type in METHOD_TYPES
-                        and member.info['name'] == method.info['name']
+                        and member.name == method.name
                         and overridable(method, member)):
                     relate(Overrides, method, member)

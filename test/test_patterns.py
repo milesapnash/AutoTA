@@ -314,7 +314,7 @@ def find(repo, pattern, language='java'):
 
 
 def names(match, role):
-    return [entity.info['name'] for entity in match.roles[role]]
+    return [entity.name for entity in match.roles[role]]
 
 
 class TestMatches(unittest.TestCase):
@@ -502,9 +502,8 @@ class TestPatternLibrary(unittest.TestCase):
                           'strategy': 'interface',
                           'algorithm': 'abstractMethod',
                           'concrete': 'class'})
-        self.assertEqual(pattern.roles['held'].info,
-                         {'modifiers': {'private'}})
-        self.assertIsNone(pattern.roles['run'].info)
+        self.assertEqual(pattern.roles['held'].modifiers, {'private'})
+        self.assertEqual(pattern.roles['run'].modifiers, set())
         self.assertEqual(pattern.relations, {
             'context': {'has': ['held', 'run', 'helper']},
             'held': {'isOfType': ['strategy']},
@@ -564,7 +563,7 @@ class TestErGraph(unittest.TestCase):
 
         graph = build_java_graph([file])
 
-        names = {entity.info['name'] for entity in graph['entities']}
+        names = {entity.name for entity in graph['entities']}
         self.assertEqual(names, {'Example', 'field', 'method'})
 
     def test_file_with_several_types_includes_all_of_them(self):
@@ -581,7 +580,7 @@ class TestErGraph(unittest.TestCase):
 
         graph = build_java_graph([file])
 
-        types = {(entity.type, entity.info['name'])
+        types = {(entity.type, entity.name)
                  for entity in graph['entities']}
         self.assertEqual(types, {('interface', 'Shape'),
                                  ('abstractMethod', 'area'),

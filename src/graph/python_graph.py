@@ -44,7 +44,7 @@ def first_pass(file, first_pass_dict):
             else:
                 entity_type = (AbstractClass if is_abstract_class(node)
                                else Class)
-            entity = entity_type(info={'name': name}, **location)
+            entity = entity_type(name=name, **location)
             class_entities[id(node)] = entity
             file_entities.append(entity)
             add_node_to_dict(first_pass_dict, name, entity)
@@ -55,25 +55,26 @@ def first_pass(file, first_pass_dict):
         if owner_entity is None:
             continue
 
-        info = {'modifiers': PythonFilter.modifiers_of(node), 'name': name}
+        attributes = {'modifiers': PythonFilter.modifiers_of(node)}
         if kind == 'method':
             # As in Java, every method of an interface is abstract
             abstract = (owner_entity.type == 'interface'
                         or is_abstract_method(node))
             entity_type = AbstractMethod if abstract else Method
         elif kind == 'constructor':
-            info['name'] = f'{owner.name} Constructor'
+            name = f'{owner.name} Constructor'
             entity_type = Constructor
         elif kind == 'field':
-            info['type'] = (identifier(node.annotation)
-                            if isinstance(node, ast.AnnAssign) else None)
+            attributes['declared_type'] = (
+                identifier(node.annotation)
+                if isinstance(node, ast.AnnAssign) else None)
             entity_type = Field
         else:
             continue
 
-        entity = entity_type(info=info, **location)
+        entity = entity_type(name=name, **attributes, **location)
         file_entities.append(entity)
-        add_node_to_dict(first_pass_dict, info['name'], entity)
+        add_node_to_dict(first_pass_dict, name, entity)
         file_relations.append(Has(owner_entity, entity))
 
     return file_entities, file_relations
@@ -201,7 +202,7 @@ class SecondPass:
         for imported, names in self.imports.get(origin.file, ()):
             if module == imported or module.endswith('.' + imported):
                 if (names is None or '*' in names
-                        or entity.info['name'] in names):
+                        or entity.name in names):
                     return True
         return False
 
@@ -242,7 +243,7 @@ class SecondPass:
             if named or elements:
                 return named, elements
         if (class_kind(owner.node) == 'enum'
-                and 'static' in field.info['modifiers']):
+                and 'static' in field.modifiers):
             return [owner], []
 
         if isinstance(node.value, ast.Call):
@@ -317,7 +318,7 @@ class SecondPass:
             'memberOf'] else None
         if entity.type == 'field':
             # A field of the class itself is set as the class is declared
-            if 'static' in entity.info['modifiers']:
+            if 'static' in entity.modifiers:
                 self.evaluate(node.value, Scope(entity, owner, returns=False))
         elif entity.type in ('method', 'constructor'):
             scope = Scope(entity, owner)

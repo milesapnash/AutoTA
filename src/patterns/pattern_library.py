@@ -81,8 +81,7 @@ class Pattern:
     def add(self, role):
         if role.name in self.roles:
             raise ValueError(f'Two roles are named {role.name}')
-        info = {'modifiers': role.modifiers} if role.modifiers else None
-        self.roles[role.name] = role.entity_type(info=info)
+        self.roles[role.name] = role.entity_type(modifiers=role.modifiers)
 
         relations = {relation: as_list(targets)
                      for relation, targets in role.relations.items()}

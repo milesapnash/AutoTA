@@ -1,11 +1,18 @@
 # The relation that each relation is recorded as on the entity it leads to
-INVERSES = {'has': 'memberOf', 'extends': 'extendedBy',
-            'implements': 'implementedBy', 'instantiates': 'instantiatedBy',
-            'overrides': 'overriddenBy', 'invokes': 'invokedBy',
-            'parameterOfType': 'typeOfParameter', 'isOfType': 'isTypeOf',
-            'isCollectionOf': 'isElementTypeOf',
-            'hasReturnType': 'isReturnTypeOf', 'assigns': 'assignedBy',
-            'returns': 'returnedBy'}
+INVERSES = {
+    'has': 'memberOf',
+    'extends': 'extendedBy',
+    'implements': 'implementedBy',
+    'instantiates': 'instantiatedBy',
+    'overrides': 'overriddenBy',
+    'invokes': 'invokedBy',
+    'parameterOfType': 'typeOfParameter',
+    'isOfType': 'isTypeOf',
+    'isCollectionOf': 'isElementTypeOf',
+    'hasReturnType': 'isReturnTypeOf',
+    'assigns': 'assignedBy',
+    'returns': 'returnedBy',
+}
 
 
 class Entity:
@@ -19,18 +26,8 @@ class Entity:
         self.node = node
         self.package = package
         self.file = file
-        self.relations = {'has': [], 'memberOf': [],
-                          'extends': [], 'extendedBy': [],
-                          'implements': [], 'implementedBy': [],
-                          'instantiates': [], 'instantiatedBy': [],
-                          'overrides': [], 'overriddenBy': [],
-                          'invokes': [], 'invokedBy': [],
-                          'parameterOfType': [], 'typeOfParameter': [],
-                          'isOfType': [], 'isTypeOf': [],
-                          'isCollectionOf': [], 'isElementTypeOf': [],
-                          'hasReturnType': [], 'isReturnTypeOf': [],
-                          'assigns': [], 'assignedBy': [],
-                          'returns': [], 'returnedBy': []}
+        self.relations = {name: [] for pair in INVERSES.items()
+                          for name in pair}
 
     def __str__(self):
         if self.info is None or self.info["name"] is None:
@@ -79,10 +76,15 @@ class Field(Entity):
 
 
 class Relation:
-    def __init__(self, source, target, relation_type):
+    """A relation from one entity to another, which is also recorded on both
+    of them: as itself on the source and as its inverse on the target."""
+    relation_type = None
+
+    def __init__(self, source, target):
         self.source = source
         self.target = target
-        self.relation_type = relation_type
+        source.relations[self.relation_type].append(target)
+        target.relations[INVERSES[self.relation_type]].append(source)
 
     def __str__(self):
         return f'{self.source} {self.relation_type} {self.target}'
@@ -92,84 +94,48 @@ class Relation:
 
 
 class Has(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'has')
-        source.relations['has'].append(target)
-        target.relations['memberOf'].append(source)
+    relation_type = 'has'
 
 
 class Implements(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'implements')
-        source.relations['implements'].append(target)
-        target.relations['implementedBy'].append(source)
+    relation_type = 'implements'
 
 
 class Extends(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'extends')
-        source.relations['extends'].append(target)
-        target.relations['extendedBy'].append(source)
+    relation_type = 'extends'
 
 
 class ParameterOfType(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'parameterOfType')
-        source.relations['parameterOfType'].append(target)
-        target.relations['typeOfParameter'].append(source)
+    relation_type = 'parameterOfType'
 
 
 class IsOfType(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'isOfType')
-        source.relations['isOfType'].append(target)
-        target.relations['isTypeOf'].append(source)
+    relation_type = 'isOfType'
 
 
 class HasReturnType(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'hasReturnType')
-        source.relations['hasReturnType'].append(target)
-        target.relations['isReturnTypeOf'].append(source)
+    relation_type = 'hasReturnType'
 
 
 class Invokes(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'invokes')
-        source.relations['invokes'].append(target)
-        target.relations['invokedBy'].append(source)
+    relation_type = 'invokes'
 
 
 class Overrides(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'overrides')
-        source.relations['overrides'].append(target)
-        target.relations['overriddenBy'].append(source)
+    relation_type = 'overrides'
 
 
 class Instantiates(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'instantiates')
-        source.relations['instantiates'].append(target)
-        target.relations['instantiatedBy'].append(source)
+    relation_type = 'instantiates'
 
 
 class IsCollectionOf(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'isCollectionOf')
-        source.relations['isCollectionOf'].append(target)
-        target.relations['isElementTypeOf'].append(source)
+    relation_type = 'isCollectionOf'
 
 
 class Assigns(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'assigns')
-        source.relations['assigns'].append(target)
-        target.relations['assignedBy'].append(source)
+    relation_type = 'assigns'
 
 
 class Returns(Relation):
-    def __init__(self, source, target):
-        super().__init__(source, target, 'returns')
-        source.relations['returns'].append(target)
-        target.relations['returnedBy'].append(source)
+    relation_type = 'returns'

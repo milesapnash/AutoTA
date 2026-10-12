@@ -29,5 +29,10 @@ class IdentifierRule(Rule):
 
         return feedback
 
+    def passed_message(self):
+        return (f'All {self.node_filter.node_class}s within {self.scope} '
+                f'had the correct identifier format of '
+                f'{self.node_filter.node_name}')
+
     def __str__(self):
         return '-Identifier Rule'

@@ -5,8 +5,6 @@ from src.languages import LANGUAGES, language_of
 from src.project.feedback_pdf import create_feedback_pdf
 from src.project.llm_summary import request_llm_summary
 from src.project.review_file import ReviewFile
-from src.rules.encapsulation_rule import EncapsulationRule
-from src.rules.identifier_rule import IdentifierRule
 from src.scope import in_scope, walk_source
 
 
@@ -90,18 +88,8 @@ class ReviewProject:
                     rule_feedback.extend(
                         [f'File: {file.file_name}, Line: {line}: {text}' for
                          line, text in feedback])
-            if not rule_feedback:
-                if isinstance(rule, EncapsulationRule):
-                    complete_feedback.append(
-                        f'All classes within {rule.scope} were properly '
-                        f'encapsulated')
-                elif isinstance(rule, IdentifierRule):
-                    complete_feedback.append(
-                        f'All {rule.node_filter.node_class}s within '
-                        f'{rule.scope} had the correct identifier format of '
-                        f'{rule.node_filter.node_name}')
-            else:
-                complete_feedback.extend(rule_feedback)
+            complete_feedback.extend(rule_feedback
+                                     or [rule.passed_message()])
         complete_feedback.append("")
         return complete_feedback
 

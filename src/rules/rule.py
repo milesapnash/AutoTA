@@ -30,3 +30,7 @@ class Rule:
 
     def apply(self, review_file):
         raise NotImplementedError
+
+    def passed_message(self):
+        """The feedback to give when nothing breaks the rule."""
+        raise NotImplementedError

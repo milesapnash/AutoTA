@@ -9,10 +9,10 @@ from src.graph.er_classes import (
     Field, Has, HasReturnType, Implements, Instantiates, Interface, Invokes,
     IsCollectionOf, IsOfType, Method, ParameterOfType, Returns)
 from src.graph.graph_display import print_graph
-from src.graph.utils import (
-    CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_node_to_dict,
-    add_overrides, field_type, find_field, find_in_dict, find_members,
-    find_unique, relation_adder)
+from src.graph.symbols import (
+    CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_overrides, field_type,
+    find_entity, find_field, find_members, find_unique, register,
+    relation_adder)
 
 # Annotations that describe a single value rather than a collection of them
 WRAPPERS = {'Optional', 'Union', 'Final', 'ClassVar', 'Annotated'}
@@ -47,7 +47,7 @@ def first_pass(file, first_pass_dict):
             entity = entity_type(name=name, **location)
             class_entities[id(node)] = entity
             file_entities.append(entity)
-            add_node_to_dict(first_pass_dict, name, entity)
+            register(first_pass_dict, name, entity)
             if owner_entity is not None:
                 file_relations.append(Has(owner_entity, entity))
             continue
@@ -74,7 +74,7 @@ def first_pass(file, first_pass_dict):
 
         entity = entity_type(name=name, **attributes, **location)
         file_entities.append(entity)
-        add_node_to_dict(first_pass_dict, name, entity)
+        register(first_pass_dict, name, entity)
         file_relations.append(Has(owner_entity, entity))
 
     return file_entities, file_relations
@@ -209,8 +209,8 @@ class SecondPass:
     def find_type(self, name, origin):
         if name is None:
             return None
-        return find_in_dict(name, self.first_pass_dict, origin,
-                            types=CLASS_TYPES, imported=self.is_imported)
+        return find_entity(name, self.first_pass_dict, origin,
+                           types=CLASS_TYPES, imported=self.is_imported)
 
     def referenced_types(self, annotation, origin):
         """Returns the classes that an annotation refers to: those that it

@@ -2,12 +2,10 @@ import os
 
 from openai import OpenAI
 
-from src.project.feedback_pdf import FeedbackPDF
-
 DEFAULT_MODEL = 'gpt-4o-mini'
 
 
-def gpt_api_request(project_files, project_feedback):
+def request_llm_summary(project_files, project_feedback):
     api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
         return "No API key provided"
@@ -41,12 +39,3 @@ def gpt_api_request(project_files, project_feedback):
     except Exception as e:
         print(f'-GPT API Request Failed: {e}')
         return None
-
-
-def create_feedback_pdf(code_files, task, summary, output_path):
-    feedback_pdf = FeedbackPDF(task=task, summary=summary)
-    for file in code_files:
-        feedback_pdf.add_code_with_feedback(file)
-    feedback_pdf.output(output_path)
-    print()
-    print(f'{output_path} created')

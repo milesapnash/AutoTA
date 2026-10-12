@@ -7,10 +7,10 @@ from src.graph.er_classes import (
     Field, Has, HasReturnType, Implements, Instantiates, Interface, Invokes,
     IsCollectionOf, IsOfType, Method, Overrides, ParameterOfType, Returns)
 from src.graph.graph_display import print_graph
-from src.graph.utils import (
-    CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_node_to_dict,
-    add_overrides, enclosing_classes, field_type, find_field, find_in_dict,
-    find_members, find_unique, relation_adder, supertypes)
+from src.graph.symbols import (
+    CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_overrides,
+    enclosing_classes, field_type, find_entity, find_field, find_members,
+    find_unique, register, relation_adder, supertypes)
 
 TYPE_DECLARATIONS = ('class_declaration', 'interface_declaration',
                      'enum_declaration', 'record_declaration')
@@ -161,7 +161,7 @@ class FirstPass:
         entity = entity_type(name=name, node=node, **attributes,
                              **self.location)
         self.entities.append(entity)
-        add_node_to_dict(self.first_pass_dict, name, entity)
+        register(self.first_pass_dict, name, entity)
         if owner is not None:
             self.relations.append(Has(owner, entity))
         return entity
@@ -334,8 +334,8 @@ class SecondPass:
     def find_type(self, name, origin):
         if name is None:
             return None
-        return find_in_dict(name, self.first_pass_dict, origin,
-                            types=CLASS_TYPES, imported=self.is_imported)
+        return find_entity(name, self.first_pass_dict, origin,
+                           types=CLASS_TYPES, imported=self.is_imported)
 
     def referenced_types(self, type_node, origin, array=False):
         """Returns the classes that a declared type refers to: those that it

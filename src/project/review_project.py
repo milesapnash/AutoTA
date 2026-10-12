@@ -2,8 +2,9 @@ import os
 from collections import Counter
 
 from src.languages import LANGUAGES, language_of
+from src.project.feedback_pdf import create_feedback_pdf
+from src.project.llm_summary import request_llm_summary
 from src.project.review_file import ReviewFile
-from src.project.utils import create_feedback_pdf, gpt_api_request
 from src.rules.encapsulation_rule import EncapsulationRule
 from src.rules.identifier_rule import IdentifierRule
 from src.scope import in_scope, walk_source
@@ -127,7 +128,7 @@ class ReviewProject:
                 print(feedback)
 
     def get_llm_summary(self):
-        self.summary = gpt_api_request(self.files, self.feedback)
+        self.summary = request_llm_summary(self.files, self.feedback)
 
     def build_pdf(self, output_path):
         create_feedback_pdf(self.files, self.spec.task, self.summary,

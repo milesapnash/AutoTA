@@ -62,3 +62,12 @@ class FeedbackPDF(FPDF):
                     self.cell(0, self.line_height, line_text, border=0, ln=1)
             else:
                 self.cell(0, self.line_height, line_text, border=0, ln=1)
+
+
+def create_feedback_pdf(code_files, task, summary, output_path):
+    feedback_pdf = FeedbackPDF(task=task, summary=summary)
+    for file in code_files:
+        feedback_pdf.add_code_with_feedback(file)
+    feedback_pdf.output(output_path)
+    print()
+    print(f'{output_path} created')

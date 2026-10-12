@@ -9,10 +9,10 @@ from unittest import mock
 from src.patterns.design_pattern import DesignPattern
 from src.filters.java_filter import JavaFilter
 from src.project.feedback_pdf import FeedbackPDF
+from src.project.llm_summary import request_llm_summary
 from src.project.review_file import ReviewFile
 from src.project.review_project import ReviewProject
 from src.project.spec import Spec, build_spec
-from src.project.utils import gpt_api_request
 from src.rules.encapsulation_rule import EncapsulationRule
 from src.rules.identifier_rule import IdentifierRule
 from src.scope import in_scope
@@ -250,8 +250,8 @@ class TestSummaryPrompt(unittest.TestCase):
                  ReviewFile('./', '', 'B.java', contents='class B {}')]
 
         with mock.patch.dict(os.environ, {'OPENAI_API_KEY': 'key'}), \
-                mock.patch('src.project.utils.OpenAI') as client, quiet():
-            gpt_api_request(files, ['first line', 'second line'])
+                mock.patch('src.project.llm_summary.OpenAI') as client, quiet():
+            request_llm_summary(files, ['first line', 'second line'])
 
         request = client.return_value.chat.completions.create.call_args
         prompt = request.kwargs['messages'][1]['content']

@@ -12,14 +12,14 @@ Typed = namedtuple('Typed', ['type', 'element'])
 EXTERNAL = Typed(None, None)
 
 
-def add_node_to_dict(node_dict, key, item):
+def register(node_dict, key, item):
     if key in node_dict:
         node_dict[key].append(item)
     else:
         node_dict[key] = [item]
 
 
-def find_in_dict(name, name_dict, origin, types=None, imported=None):
+def find_entity(name, name_dict, origin, types=None, imported=None):
     """Finds the entity that a name refers to from origin. If several
     entities share the name, one in the same file is preferred, then one
     that the file imports, then one in the same package."""

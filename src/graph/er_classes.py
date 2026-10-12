@@ -16,8 +16,6 @@ INVERSES = {
 
 
 class Entity:
-    types = {'class', 'abstractClass', 'interface', 'constructor', 'method',
-             'abstractMethod', 'field'}
     type = 'entity'
 
     def __init__(self, *, name=None, modifiers=(), node=None, package=None,

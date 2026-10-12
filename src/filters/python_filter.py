@@ -1,5 +1,4 @@
 import ast
-import re
 
 from src.filters.base_filter import Filter
 
@@ -117,24 +116,8 @@ def classify(tree):
 
 
 class PythonFilter(Filter):
-    def __init__(self, negatives=None, node_class='node', node_name=None,
-                 node_modifiers=None,
-                 node_annotations=None, node_extends=None,
-                 node_implements=None,
-                 node_type=None, node_return_type=None):
-        super().__init__('python')
-        if node_class not in KINDS:
-            raise ValueError(f'Unknown node class: {node_class}')
-
-        self.node_class = node_class
-        self.node_name = node_name
-        self.node_modifiers = node_modifiers
-        self.node_annotations = node_annotations
-        self.node_extends = node_extends
-        self.node_implements = node_implements
-        self.node_type = node_type
-        self.node_return_type = node_return_type
-        self.negatives = negatives
+    language = 'python'
+    node_classes = KINDS
 
     @staticmethod
     def name_of(node):
@@ -173,77 +156,39 @@ class PythonFilter(Filter):
                 modifiers.add('static')
         return modifiers
 
-    def _filter_node_class(self, kind):
+    def _filter_node_class(self, node, kind):
         return self.node_class in ('node', kind)
 
-    def _filter_node_name(self, node):
-        if self.node_name is None:
-            return True
-        comp_name = self.name_of(node)
-        if comp_name is None:
-            return False
-        return re.match(self.node_name, comp_name)
+    @staticmethod
+    def has_modifiers(node):
+        return isinstance(node, (ast.ClassDef,) + FUNCTIONS + ASSIGNMENTS)
 
-    def _filter_node_modifiers(self, node):
-        if self.node_modifiers is None or len(self.node_modifiers) == 0:
-            return True
-        if not isinstance(node, (ast.ClassDef,) + FUNCTIONS + ASSIGNMENTS):
-            return False
-
-        if self.negatives is None or 'node_modifiers' not in self.negatives:
-            return set(self.node_modifiers).issubset(self.modifiers_of(node))
-        else:
-            return set(self.node_modifiers).isdisjoint(
-                self.modifiers_of(node))
-
-    def _filter_node_annotations(self, node):
-        if self.node_annotations is None or len(self.node_annotations) == 0:
-            return True
+    @staticmethod
+    def annotations_of(node):
         if not hasattr(node, 'decorator_list'):
-            return False
-        return set(self.node_annotations).issubset(
-            set(decorator_names(node)))
+            return None
+        return decorator_names(node)
 
-    def _filter_node_extends(self, node):
-        if self.node_extends is None:
-            return True
-        if not isinstance(node, ast.ClassDef):
-            return False
-        return self.node_extends in base_names(node)
+    @staticmethod
+    def extended_types(node):
+        return base_names(node) if isinstance(node, ast.ClassDef) else None
 
-    def _filter_node_implements(self, node):
-        if self.node_implements is None or len(self.node_implements) == 0:
-            return True
-        if not isinstance(node, ast.ClassDef):
-            return False
-        return set(self.node_implements).issubset(set(base_names(node)))
+    # Python does not tell the types that a class extends from those that
+    # it implements
+    implemented_types = extended_types
 
-    def _filter_node_type(self, node):
-        if self.node_type is None:
-            return True
+    @staticmethod
+    def type_of(node):
         if not isinstance(node, ast.AnnAssign):
-            return False
-        return identifier(node.annotation) == self.node_type
+            return None
+        return identifier(node.annotation)
 
-    def _filter_node_return_type(self, node):
-        if self.node_return_type is None:
-            return True
+    @staticmethod
+    def return_type_of(node):
         if not isinstance(node, FUNCTIONS) or node.returns is None:
-            return False
-        return identifier(node.returns) == self.node_return_type
-
-    def _passes_filter(self, kind, node):
-        return all([
-            self._filter_node_class(kind),
-            self._filter_node_name(node),
-            self._filter_node_modifiers(node),
-            self._filter_node_annotations(node),
-            self._filter_node_extends(node),
-            self._filter_node_implements(node),
-            self._filter_node_type(node),
-            self._filter_node_return_type(node)
-        ])
+            return None
+        return identifier(node.returns)
 
     def get_nodes(self, tree):
         return [node for kind, node, _ in classify(tree)
-                if self._passes_filter(kind, node)]
+                if self._passes_filter(node, kind)]

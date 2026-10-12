@@ -5,14 +5,14 @@ from src.filters.python_filter import (
     FUNCTIONS, PythonFilter, base_names, class_kind, classify,
     decorator_names, identifier, is_abstract_class, is_abstract_method)
 from src.graph.er_classes import (
-    AbstractClass, AbstractMethod, Assigns, Class, Constructor, Extends,
-    Field, Has, HasReturnType, Implements, Instantiates, Interface, Invokes,
-    IsCollectionOf, IsOfType, Method, ParameterOfType, Returns)
+    AbstractClass, AbstractMethod, Assigns, Class, Constructor, Field, Has,
+    HasReturnType, Instantiates, Interface, Invokes, IsCollectionOf, IsOfType,
+    Method, ParameterOfType, Returns)
 from src.graph.graph_display import print_graph
+from src.graph.second_pass import SecondPass
 from src.graph.symbols import (
     CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_overrides, field_type,
-    find_entity, find_field, find_members, find_unique, register,
-    relation_adder)
+    find_field, find_members, find_unique, register)
 
 # Annotations that describe a single value rather than a collection of them
 WRAPPERS = {'Optional', 'Union', 'Final', 'ClassVar', 'Annotated'}
@@ -178,15 +178,11 @@ class Scope:
                      returns=False)
 
 
-class SecondPass:
-    """Adds the relations between the entities found by the first pass."""
-
+class PythonSecondPass(SecondPass):
     def __init__(self, entities, relations, first_pass_dict, imports,
                  names):
-        self.first_pass_dict = first_pass_dict
-        self.imports = imports
+        super().__init__(relations, first_pass_dict, imports)
         self.names = names
-        self.relate = relation_adder(relations)
         # The class created by each call found to instantiate one
         self.instantiations = {}
 
@@ -206,11 +202,8 @@ class SecondPass:
                     return True
         return False
 
-    def find_type(self, name, origin):
-        if name is None:
-            return None
-        return find_entity(name, self.first_pass_dict, origin,
-                           types=CLASS_TYPES, imported=self.is_imported)
+    def supertype_names(self, entity):
+        return base_names(entity.node)
 
     def referenced_types(self, annotation, origin):
         """Returns the classes that an annotation refers to: those that it
@@ -270,20 +263,6 @@ class SecondPass:
                 isinstance(value, ast.Constant) and value.value is not None):
             return EXTERNAL
         return None
-
-    # Class - Extends, or Implements if the base is an interface
-    def add_supertypes(self, entity):
-        if entity.type not in CLASS_TYPES:
-            return
-        for base in base_names(entity.node):
-            related_entity = self.find_type(base, entity)
-            if related_entity is None:
-                continue
-            if (related_entity.type == 'interface'
-                    and entity.type != 'interface'):
-                self.relate(Implements, entity, related_entity)
-            else:
-                self.relate(Extends, entity, related_entity)
 
     def add_declared_types(self, entity):
         node = entity.node
@@ -568,7 +547,7 @@ def build_python_graph(files, display=False):
         if display:
             print_graph(file_entities, file_relations)
 
-    SecondPass(entities, relations, first_pass_dict, imports, names)
+    PythonSecondPass(entities, relations, first_pass_dict, imports, names)
 
     if display:
         print_graph(entities, relations)

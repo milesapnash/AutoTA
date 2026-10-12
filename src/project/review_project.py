@@ -13,7 +13,6 @@ from src.scope import in_scope, walk_source
 class ReviewProject:
 
     def __init__(self, directory, spec, er_scope=None):
-        self.directory = directory
         self.spec = spec
         self.files = []
         self.summary = None

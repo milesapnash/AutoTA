@@ -3,14 +3,14 @@ import os.path
 from src.filters.java_filter import (
     child_of_type, modifiers_of, supertype_nodes, text, type_name)
 from src.graph.er_classes import (
-    AbstractClass, AbstractMethod, Assigns, Class, Constructor, Extends,
-    Field, Has, HasReturnType, Implements, Instantiates, Interface, Invokes,
+    AbstractClass, AbstractMethod, Assigns, Class, Constructor, Field, Has,
+    HasReturnType, Implements, Instantiates, Interface, Invokes,
     IsCollectionOf, IsOfType, Method, Overrides, ParameterOfType, Returns)
 from src.graph.graph_display import print_graph
+from src.graph.second_pass import SecondPass
 from src.graph.symbols import (
-    CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_overrides,
-    enclosing_classes, field_type, find_entity, find_field, find_members,
-    find_unique, register, relation_adder, supertypes)
+    EXTERNAL, METHOD_TYPES, Typed, add_overrides, enclosing_classes,
+    field_type, find_field, find_members, find_unique, register, supertypes)
 
 TYPE_DECLARATIONS = ('class_declaration', 'interface_declaration',
                      'enum_declaration', 'record_declaration')
@@ -251,13 +251,6 @@ class FirstPass:
                     owner, node, type_name(node.child_by_field_name('type')))
 
 
-def supertype_names(entity):
-    if entity.supertype is not None:
-        return [entity.supertype]
-    return [type_name(supertype) for supertype in supertype_nodes(
-        entity.node, 'superclass', 'super_interfaces', 'extends_interfaces')]
-
-
 class Scope:
     """The member that a piece of code belongs to, and the types of the
     parameters and local variables that the code can refer to."""
@@ -275,14 +268,10 @@ class Scope:
         return Scope(self.member, self.owner, self.variables, returns=False)
 
 
-class SecondPass:
-    """Adds the relations between the entities found by the first pass."""
-
+class JavaSecondPass(SecondPass):
     def __init__(self, entities, relations, first_pass_dict, imports):
+        super().__init__(relations, first_pass_dict, imports)
         self.entities = entities
-        self.first_pass_dict = first_pass_dict
-        self.imports = imports
-        self.relate = relation_adder(relations)
         self.anonymous_classes = {
             self.position(entity, entity.node): entity
             for entity in entities if is_anonymous_class(entity.node)}
@@ -331,11 +320,12 @@ class SecondPass:
                 return True
         return False
 
-    def find_type(self, name, origin):
-        if name is None:
-            return None
-        return find_entity(name, self.first_pass_dict, origin,
-                           types=CLASS_TYPES, imported=self.is_imported)
+    def supertype_names(self, entity):
+        if entity.supertype is not None:
+            return [entity.supertype]
+        return [type_name(supertype) for supertype in supertype_nodes(
+            entity.node, 'superclass', 'super_interfaces',
+            'extends_interfaces')]
 
     def referenced_types(self, type_node, origin, array=False):
         """Returns the classes that a declared type refers to: those that it
@@ -366,20 +356,6 @@ class SecondPass:
         if method.node.type == 'method_declaration':
             return self.typed(method.node.child_by_field_name('type'), method)
         return None
-
-    # Class - Extends, or Implements if the supertype is an interface
-    def add_supertypes(self, entity):
-        if entity.type not in CLASS_TYPES:
-            return
-        for supertype in supertype_names(entity):
-            related_entity = self.find_type(supertype, entity)
-            if related_entity is None:
-                continue
-            if (related_entity.type == 'interface'
-                    and entity.type != 'interface'):
-                self.relate(Implements, entity, related_entity)
-            else:
-                self.relate(Extends, entity, related_entity)
 
     def add_declared_types(self, entity):
         node = entity.node
@@ -830,7 +806,7 @@ def build_java_graph(files, display=False):
         if display:
             print_graph(file_pass.entities, file_pass.relations)
 
-    SecondPass(entities, relations, first_pass_dict, imports)
+    JavaSecondPass(entities, relations, first_pass_dict, imports)
 
     if display:
         print_graph(entities, relations)

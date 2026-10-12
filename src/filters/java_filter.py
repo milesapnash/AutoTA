@@ -1,5 +1,3 @@
-import re
-
 from src.filters.base_filter import Filter
 
 # The type of syntax tree node that each kind of node is parsed as
@@ -83,26 +81,10 @@ def supertype_nodes(node, *clauses):
 
 
 class JavaFilter(Filter):
-    def __init__(self, negatives=None, node_class='node', node_name=None,
-                 node_modifiers=None,
-                 node_annotations=None, node_extends=None,
-                 node_implements=None,
-                 node_type=None, node_return_type=None):
-        super().__init__('java')
-        if node_class not in NODE_TYPES:
-            raise ValueError(f'Unknown node class: {node_class}')
+    language = 'java'
+    node_classes = NODE_TYPES
 
-        self.node_class = node_class
-        self.node_name = node_name
-        self.node_modifiers = node_modifiers
-        self.node_annotations = node_annotations
-        self.node_extends = node_extends
-        self.node_implements = node_implements
-        self.node_type = node_type
-        self.node_return_type = node_return_type
-        self.negatives = negatives
-
-    def _filter_node_class(self, node):
+    def _filter_node_class(self, node, kind):
         node_type = NODE_TYPES[self.node_class]
         return node_type is None or node.type == node_type
 
@@ -127,74 +109,36 @@ class JavaFilter(Filter):
         name = JavaFilter.name_node(node)
         return (name if name is not None else node).start_point.row + 1
 
-    def _filter_node_name(self, node):
-        if self.node_name is None:
-            return True
-        comp_name = self.name_of(node)
-        if comp_name is None:
-            return False
-        return re.match(self.node_name, comp_name)
+    @staticmethod
+    def has_modifiers(node):
+        return node.type.endswith('_declaration')
 
-    def _filter_node_modifiers(self, node):
-        if self.node_modifiers is None or len(self.node_modifiers) == 0:
-            return True
-        if not node.type.endswith('_declaration'):
-            return False
+    modifiers_of = staticmethod(modifiers_of)
+    annotations_of = staticmethod(annotations_of)
 
-        modifiers = modifiers_of(node)
-        if self.negatives is None or 'node_modifiers' not in self.negatives:
-            return set(self.node_modifiers).issubset(modifiers)
-        else:
-            return set(self.node_modifiers).isdisjoint(modifiers)
+    @staticmethod
+    def extended_types(node):
+        return [type_name(supertype) for supertype in supertype_nodes(
+            node, 'superclass', 'extends_interfaces')]
 
-    def _filter_node_annotations(self, node):
-        if self.node_annotations is None or len(self.node_annotations) == 0:
-            return True
-        return set(self.node_annotations).issubset(set(annotations_of(node)))
+    @staticmethod
+    def implemented_types(node):
+        return [type_name(supertype) for supertype in
+                supertype_nodes(node, 'super_interfaces')]
 
-    def _filter_node_extends(self, node):
-        if self.node_extends is None:
-            return True
-        extended = supertype_nodes(node, 'superclass', 'extends_interfaces')
-        return self.node_extends in [type_name(supertype)
-                                     for supertype in extended]
-
-    def _filter_node_implements(self, node):
-        if self.node_implements is None or len(self.node_implements) == 0:
-            return True
-        implemented = [type_name(supertype) for supertype in
-                       supertype_nodes(node, 'super_interfaces')]
-        return set(self.node_implements).issubset(set(implemented))
-
-    def _filter_node_type(self, node):
-        if self.node_type is None:
-            return True
+    @staticmethod
+    def type_of(node):
         # The type of a method is the type that it returns
         if node.type == 'method_declaration':
-            return False
-        return type_name(node.child_by_field_name(
-            'type')) == self.node_type
+            return None
+        return type_name(node.child_by_field_name('type'))
 
-    def _filter_node_return_type(self, node):
-        if self.node_return_type is None:
-            return True
+    @staticmethod
+    def return_type_of(node):
         if node.type != 'method_declaration':
-            return False
-        return type_name(node.child_by_field_name(
-            'type')) == self.node_return_type
+            return None
+        return type_name(node.child_by_field_name('type'))
 
-    def _passes_filter(self, node):
-        return all([
-            self._filter_node_class(node),
-            self._filter_node_name(node),
-            self._filter_node_modifiers(node),
-            self._filter_node_annotations(node),
-            self._filter_node_extends(node),
-            self._filter_node_implements(node),
-            self._filter_node_type(node),
-            self._filter_node_return_type(node)
-        ])
-
-    def get_nodes(self, ast):
-        return [node for node in descendants(ast)
+    def get_nodes(self, tree):
+        return [node for node in descendants(tree)
                 if self._passes_filter(node)]

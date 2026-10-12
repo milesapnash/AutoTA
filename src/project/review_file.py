@@ -6,7 +6,6 @@ from src.languages import LANGUAGES, language_of
 class ReviewFile:
 
     def __init__(self, root, relative_path, file_name, contents=None):
-        self.root = root
         self.relative_path = relative_path
         self.file_name = file_name
         self.feedback = []

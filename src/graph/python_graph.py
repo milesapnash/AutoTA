@@ -22,8 +22,8 @@ COMPREHENSIONS = (ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp)
 
 
 def first_pass(file, first_pass_dict):
-    package_name = file.relative_path
-    full_file_name = os.path.join(file.relative_path, file.file_name)
+    package_name = file.relative_dir
+    full_file_name = os.path.join(file.relative_dir, file.file_name)
 
     file_entities = []
     file_relations = []
@@ -540,7 +540,7 @@ def build_python_graph(files, display=False):
         file_entities, file_relations = first_pass(file, first_pass_dict)
         entities.extend(file_entities)
         relations.extend(file_relations)
-        full_file_name = os.path.join(file.relative_path, file.file_name)
+        full_file_name = os.path.join(file.relative_dir, file.file_name)
         imports[full_file_name] = imports_of(file.ast)
         names[full_file_name] = imported_names(file.ast)
 

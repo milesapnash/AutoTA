@@ -42,7 +42,7 @@ class ReviewProject:
             self.er_graph = self.build_er_graph(self.files)
         else:
             scoped_files = [file for file in self.files
-                            if in_scope(file.relative_path, er_scope)]
+                            if in_scope(file.relative_dir, er_scope)]
             if not scoped_files:
                 raise ValueError(
                     f'No source files found in the scope {er_scope} of '

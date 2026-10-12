@@ -149,7 +149,7 @@ class FirstPass:
                                          'identifier'))
         self.location = {
             'package': package,
-            'file': os.path.join(file.relative_path, file.file_name)}
+            'file': os.path.join(file.relative_dir, file.file_name)}
         self.first_pass_dict = first_pass_dict
         self.entities = []
         self.relations = []

@@ -2,10 +2,6 @@ from src.graph.er_classes import INVERSES
 from src.patterns.pattern_library import pattern_library
 
 
-def not_none_check(a, b):
-    return a is None or a == b
-
-
 def role_edges(relation_dict, roles):
     """Returns each relation between two of the roles, as the role it is
     from, the relation and the role it leads to."""
@@ -70,7 +66,7 @@ class RoleSearch:
 
     def fits(self, role, entity):
         pattern_entity = self.entity_dict[role]
-        return (not_none_check(pattern_entity.type, entity.type)
+        return (pattern_entity.type == entity.type
                 and pattern_entity.modifiers <= entity.modifiers
                 # A role related to itself, such as a method that invokes
                 # itself, needs an entity that is related to itself

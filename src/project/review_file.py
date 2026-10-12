@@ -5,8 +5,8 @@ from src.languages import LANGUAGES, language_of
 
 class ReviewFile:
 
-    def __init__(self, root, relative_path, file_name, contents=None):
-        self.relative_path = relative_path
+    def __init__(self, root, relative_dir, file_name, contents=None):
+        self.relative_dir = relative_dir
         self.file_name = file_name
         self.feedback = []
         # Why the file could not be reviewed, if it could not be

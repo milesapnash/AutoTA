@@ -11,7 +11,7 @@ class Rule:
 
         scope_type, scope = self.scope
         if scope_type == 'dir':
-            if in_scope(file.relative_path, scope):
+            if in_scope(file.relative_dir, scope):
                 return file.ast
             else:
                 return None

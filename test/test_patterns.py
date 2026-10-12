@@ -1,10 +1,10 @@
 import os
 import unittest
 
-from src.entity_relations.design_pattern import DesignPattern
-from src.entity_relations.er_classes import INVERSES, Entity
-from src.entity_relations.java_graph import build_java_graph
-from src.entity_relations.pattern_library import (
+from src.graph.er_classes import INVERSES, Entity
+from src.graph.java_graph import build_java_graph
+from src.patterns.design_pattern import DesignPattern
+from src.patterns.pattern_library import (
     PATTERNS, AbstractMethod, Class, Field, Interface, Method, Pattern,
     pattern_library)
 from src.project.review_file import ReviewFile

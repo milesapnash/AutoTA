@@ -1,4 +1,4 @@
-from src.entity_relations import er_classes
+from src.graph import er_classes
 
 # The relations that a role can be given: those that lead from one entity to
 # another, and not the inverse that each is also recorded as

@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from src.entity_relations.er_classes import Overrides
+from src.graph.er_classes import Overrides
 
 CLASS_TYPES = ('class', 'abstractClass', 'interface')
 METHOD_TYPES = ('method', 'abstractMethod')

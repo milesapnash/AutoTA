@@ -1,5 +1,5 @@
-from src.entity_relations.er_classes import INVERSES
-from src.entity_relations.pattern_library import pattern_library
+from src.graph.er_classes import INVERSES
+from src.patterns.pattern_library import pattern_library
 
 
 def not_none_check(a, b):

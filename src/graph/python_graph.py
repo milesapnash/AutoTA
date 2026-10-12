@@ -1,18 +1,18 @@
 import ast
 import os.path
 
-from src.entity_relations.er_classes import (
-    AbstractClass, AbstractMethod, Assigns, Class, Constructor, Extends,
-    Field, Has, HasReturnType, Implements, Instantiates, Interface, Invokes,
-    IsCollectionOf, IsOfType, Method, ParameterOfType, Returns)
-from src.entity_relations.graph_display import print_graph
-from src.entity_relations.utils import (
-    CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_node_to_dict,
-    add_overrides, field_type, find_field, find_in_dict, find_members,
-    find_unique, relation_adder)
 from src.filters.python_filter import (
     FUNCTIONS, PythonFilter, base_names, class_kind, classify,
     decorator_names, identifier, is_abstract_class, is_abstract_method)
+from src.graph.er_classes import (
+    AbstractClass, AbstractMethod, Assigns, Class, Constructor, Extends,
+    Field, Has, HasReturnType, Implements, Instantiates, Interface, Invokes,
+    IsCollectionOf, IsOfType, Method, ParameterOfType, Returns)
+from src.graph.graph_display import print_graph
+from src.graph.utils import (
+    CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_node_to_dict,
+    add_overrides, field_type, find_field, find_in_dict, find_members,
+    find_unique, relation_adder)
 
 # Annotations that describe a single value rather than a collection of them
 WRAPPERS = {'Optional', 'Union', 'Final', 'ClassVar', 'Annotated'}

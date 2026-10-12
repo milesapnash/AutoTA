@@ -1,6 +1,6 @@
 import unittest
 
-from src.entity_relations.python_graph import build_python_graph
+from src.graph.python_graph import build_python_graph
 from src.project.review_file import ReviewFile
 
 SHAPES = '''

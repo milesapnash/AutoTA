@@ -1,16 +1,16 @@
 import os.path
 
-from src.entity_relations.er_classes import (
+from src.filters.java_filter import (
+    child_of_type, modifiers_of, supertype_nodes, text, type_name)
+from src.graph.er_classes import (
     AbstractClass, AbstractMethod, Assigns, Class, Constructor, Extends,
     Field, Has, HasReturnType, Implements, Instantiates, Interface, Invokes,
     IsCollectionOf, IsOfType, Method, Overrides, ParameterOfType, Returns)
-from src.entity_relations.graph_display import print_graph
-from src.entity_relations.utils import (
+from src.graph.graph_display import print_graph
+from src.graph.utils import (
     CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_node_to_dict,
     add_overrides, enclosing_classes, field_type, find_field, find_in_dict,
     find_members, find_unique, relation_adder, supertypes)
-from src.filters.java_filter import (
-    child_of_type, modifiers_of, supertype_nodes, text, type_name)
 
 TYPE_DECLARATIONS = ('class_declaration', 'interface_declaration',
                      'enum_declaration', 'record_declaration')

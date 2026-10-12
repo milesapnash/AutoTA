@@ -1,6 +1,6 @@
 import unittest
 
-from src.entity_relations.java_graph import build_java_graph
+from src.graph.java_graph import build_java_graph
 from src.project.review_file import ReviewFile
 
 

@@ -4,10 +4,10 @@ from collections import namedtuple
 import tree_sitter_java
 from tree_sitter import Language as Grammar, Parser
 
-from src.entity_relations.java_graph import build_java_graph
-from src.entity_relations.python_graph import build_python_graph
 from src.filters.java_filter import JavaFilter
 from src.filters.python_filter import PythonFilter
+from src.graph.java_graph import build_java_graph
+from src.graph.python_graph import build_python_graph
 
 Language = namedtuple('Language',
                       ['extension', 'parse', 'filter', 'build_graph'])

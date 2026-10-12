@@ -1,11 +1,8 @@
-import os.path
-
+from src.graph.builder import FirstPass, SecondPass, build_graph
 from src.graph.er_classes import (
     AbstractClass, AbstractMethod, Assigns, Class, Constructor, Field, Has,
     HasReturnType, Implements, Instantiates, Interface, Invokes,
     IsCollectionOf, IsOfType, Method, Overrides, ParameterOfType, Returns)
-from src.graph.graph_display import print_graph
-from src.graph.second_pass import SecondPass
 from src.graph.symbols import (
     EXTERNAL, METHOD_TYPES, Typed, add_overrides, enclosing_classes,
     field_type, find_field, find_members, find_unique, supertypes)
@@ -147,33 +144,16 @@ def imports_of(root):
     return imports
 
 
-class FirstPass:
-    """Creates the entities declared in a file, and the Has relations
-    between each of them and the class it belongs to."""
-
+class JavaFirstPass(FirstPass):
     def __init__(self, file, first_pass_dict):
         package = child_of_type(file.ast, 'package_declaration')
         if package is not None:
             package = text(child_of_type(package, 'scoped_identifier',
                                          'identifier'))
-        self.location = {
-            'package': package,
-            'file': os.path.join(file.relative_dir, file.file_name)}
-        self.first_pass_dict = first_pass_dict
-        self.entities = []
-        self.relations = []
+        super().__init__(file, first_pass_dict, package)
 
         for type_node in file.ast.named_children:
             self.add_type(type_node)
-
-    def add(self, entity_type, name, node, owner=None, **attributes):
-        entity = entity_type(name=name, node=node, **attributes,
-                             **self.location)
-        self.entities.append(entity)
-        self.first_pass_dict.setdefault(name, []).append(entity)
-        if owner is not None:
-            self.relations.append(Has(owner, entity))
-        return entity
 
     def add_type(self, node, owner=None):
         if node.type == 'interface_declaration':
@@ -278,8 +258,10 @@ class Scope:
 
 
 class JavaSecondPass(SecondPass):
-    def __init__(self, entities, relations, first_pass_dict, imports):
-        super().__init__(relations, first_pass_dict, imports)
+    def __init__(self, entities, relations, first_pass_dict, trees):
+        super().__init__(relations, first_pass_dict,
+                         {file: imports_of(tree)
+                          for file, tree in trees.items()})
         self.entities = entities
         self.anonymous_classes = {
             self.position(entity, entity.node): entity
@@ -793,24 +775,4 @@ class JavaSecondPass(SecondPass):
 
 
 def build_java_graph(files, display=False):
-    entities = []
-    relations = []
-    first_pass_dict = {}
-    imports = {}
-
-    # Initial Pass
-    for file in files:
-        file_pass = FirstPass(file, first_pass_dict)
-        entities.extend(file_pass.entities)
-        relations.extend(file_pass.relations)
-        imports[file_pass.location['file']] = imports_of(file.ast)
-
-        if display:
-            print_graph(file_pass.entities, file_pass.relations)
-
-    JavaSecondPass(entities, relations, first_pass_dict, imports)
-
-    if display:
-        print_graph(entities, relations)
-
-    return {'entities': entities, 'relations': relations}
+    return build_graph(files, JavaFirstPass, JavaSecondPass, display)

@@ -1,12 +1,11 @@
 import ast
 import os.path
 
+from src.graph.builder import FirstPass, SecondPass, build_graph
 from src.graph.er_classes import (
-    AbstractClass, AbstractMethod, Assigns, Class, Constructor, Field, Has,
+    AbstractClass, AbstractMethod, Assigns, Class, Constructor, Field,
     HasReturnType, Instantiates, Interface, Invokes, IsCollectionOf, IsOfType,
     Method, ParameterOfType, Returns)
-from src.graph.graph_display import print_graph
-from src.graph.second_pass import SecondPass
 from src.graph.symbols import (
     CLASS_TYPES, EXTERNAL, METHOD_TYPES, Typed, add_overrides, field_type,
     find_field, find_members, find_unique)
@@ -21,63 +20,50 @@ LITERALS = (ast.List, ast.Dict, ast.Set, ast.Tuple, ast.JoinedStr,
 COMPREHENSIONS = (ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp)
 
 
-def first_pass(file, first_pass_dict):
-    package_name = file.relative_dir
-    full_file_name = os.path.join(file.relative_dir, file.file_name)
+class PythonFirstPass(FirstPass):
+    def __init__(self, file, first_pass_dict):
+        super().__init__(file, first_pass_dict, package=file.relative_dir)
+        class_entities = {}
 
-    file_entities = []
-    file_relations = []
-    class_entities = {}
+        for kind, node, owner in classify(file.ast):
+            name = PythonFilter.name_of(node)
+            owner_entity = class_entities.get(id(owner))
 
-    for kind, node, owner in classify(file.ast):
-        name = PythonFilter.name_of(node)
-        location = {'node': node, 'package': package_name,
-                    'file': full_file_name}
-        owner_entity = class_entities.get(id(owner))
+            if kind in ('class', 'interface', 'enum'):
+                if kind == 'interface':
+                    entity_type = Interface
+                elif kind == 'enum':
+                    # An enum is a class whose members are fields of its own
+                    # type
+                    entity_type = Class
+                else:
+                    entity_type = (AbstractClass if is_abstract_class(node)
+                                   else Class)
+                class_entities[id(node)] = self.add(entity_type, name, node,
+                                                    owner_entity)
+                continue
 
-        if kind in ('class', 'interface', 'enum'):
-            if kind == 'interface':
-                entity_type = Interface
-            elif kind == 'enum':
-                # An enum is a class whose members are fields of its own type
-                entity_type = Class
+            if owner_entity is None:
+                continue
+
+            attributes = {'modifiers': PythonFilter.modifiers_of(node)}
+            if kind == 'method':
+                # As in Java, every method of an interface is abstract
+                abstract = (owner_entity.type == 'interface'
+                            or is_abstract_method(node))
+                entity_type = AbstractMethod if abstract else Method
+            elif kind == 'constructor':
+                name = f'{owner.name} Constructor'
+                entity_type = Constructor
+            elif kind == 'field':
+                attributes['declared_type'] = (
+                    identifier(node.annotation)
+                    if isinstance(node, ast.AnnAssign) else None)
+                entity_type = Field
             else:
-                entity_type = (AbstractClass if is_abstract_class(node)
-                               else Class)
-            entity = entity_type(name=name, **location)
-            class_entities[id(node)] = entity
-            file_entities.append(entity)
-            first_pass_dict.setdefault(name, []).append(entity)
-            if owner_entity is not None:
-                file_relations.append(Has(owner_entity, entity))
-            continue
+                continue
 
-        if owner_entity is None:
-            continue
-
-        attributes = {'modifiers': PythonFilter.modifiers_of(node)}
-        if kind == 'method':
-            # As in Java, every method of an interface is abstract
-            abstract = (owner_entity.type == 'interface'
-                        or is_abstract_method(node))
-            entity_type = AbstractMethod if abstract else Method
-        elif kind == 'constructor':
-            name = f'{owner.name} Constructor'
-            entity_type = Constructor
-        elif kind == 'field':
-            attributes['declared_type'] = (
-                identifier(node.annotation)
-                if isinstance(node, ast.AnnAssign) else None)
-            entity_type = Field
-        else:
-            continue
-
-        entity = entity_type(name=name, **attributes, **location)
-        file_entities.append(entity)
-        first_pass_dict.setdefault(name, []).append(entity)
-        file_relations.append(Has(owner_entity, entity))
-
-    return file_entities, file_relations
+            self.add(entity_type, name, node, owner_entity, **attributes)
 
 
 def imports_of(tree):
@@ -179,10 +165,12 @@ class Scope:
 
 
 class PythonSecondPass(SecondPass):
-    def __init__(self, entities, relations, first_pass_dict, imports,
-                 names):
-        super().__init__(relations, first_pass_dict, imports)
-        self.names = names
+    def __init__(self, entities, relations, first_pass_dict, trees):
+        super().__init__(relations, first_pass_dict,
+                         {file: imports_of(tree)
+                          for file, tree in trees.items()})
+        self.names = {file: imported_names(tree)
+                      for file, tree in trees.items()}
         # The class created by each call found to instantiate one
         self.instantiations = {}
 
@@ -529,27 +517,4 @@ class PythonSecondPass(SecondPass):
 
 
 def build_python_graph(files, display=False):
-    entities = []
-    relations = []
-    first_pass_dict = {}
-    imports = {}
-    names = {}
-
-    # Initial Pass
-    for file in files:
-        file_entities, file_relations = first_pass(file, first_pass_dict)
-        entities.extend(file_entities)
-        relations.extend(file_relations)
-        full_file_name = os.path.join(file.relative_dir, file.file_name)
-        imports[full_file_name] = imports_of(file.ast)
-        names[full_file_name] = imported_names(file.ast)
-
-        if display:
-            print_graph(file_entities, file_relations)
-
-    PythonSecondPass(entities, relations, first_pass_dict, imports, names)
-
-    if display:
-        print_graph(entities, relations)
-
-    return {'entities': entities, 'relations': relations}
+    return build_graph(files, PythonFirstPass, PythonSecondPass, display)
